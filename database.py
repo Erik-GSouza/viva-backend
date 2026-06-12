@@ -307,5 +307,37 @@ def create_tables():
         );
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notificacao (
+            id_notificacao INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
+            titulo TEXT NOT NULL,
+            mensagem TEXT NOT NULL,
+            tipo TEXT NOT NULL,
+            lida INTEGER DEFAULT 0,
+            link_destino TEXT,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (id_usuario)
+                REFERENCES usuario(id_usuario)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS relatorio (
+            id_relatorio INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
+            tipo_relatorio TEXT NOT NULL,
+            filtros TEXT,
+            formato TEXT NOT NULL,
+            caminho_arquivo TEXT,
+            status TEXT NOT NULL,
+            data_geracao TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (id_usuario)
+                REFERENCES usuario(id_usuario)
+        );
+    """)
+
     connection.commit()
     connection.close()

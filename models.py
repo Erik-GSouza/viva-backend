@@ -380,3 +380,47 @@ class ConsentimentoPublicacaoVincular(BaseModel):
     id_usuario: int
     autorizado: int
     observacao: Optional[str] = None
+
+
+# MODELOS DE NOTIFICAÇÃO
+
+class NotificacaoCreate(BaseModel):
+    id_usuario: int
+    titulo: str
+    mensagem: str
+    tipo: str
+    lida: int = 0
+    link_destino: Optional[str] = None
+
+
+class NotificacaoResponse(BaseModel):
+    id_notificacao: int
+    id_usuario: int
+    titulo: str
+    mensagem: str
+    tipo: str
+    lida: int
+    link_destino: Optional[str] = None
+    data_criacao: Optional[str] = None
+
+
+# MODELOS DE RELATÓRIO
+
+class RelatorioCreate(BaseModel):
+    id_usuario: int
+    tipo_relatorio: str
+    filtros: Optional[str] = None
+    formato: str
+    caminho_arquivo: Optional[str] = None
+    status: str
+
+
+class RelatorioResponse(BaseModel):
+    id_relatorio: int
+    id_usuario: int
+    tipo_relatorio: str
+    filtros: Optional[str] = None
+    formato: str
+    caminho_arquivo: Optional[str] = None
+    status: str
+    data_geracao: Optional[str] = None

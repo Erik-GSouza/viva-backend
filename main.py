@@ -43,7 +43,11 @@ from models import (
     PortfolioProjetoVincular,
     ConsentimentoPublicacaoCreate,
     ConsentimentoPublicacaoResponse,
-    ConsentimentoPublicacaoVincular
+    ConsentimentoPublicacaoVincular,
+    NotificacaoCreate,
+    NotificacaoResponse,
+    RelatorioCreate,
+    RelatorioResponse
 )
 
 from repository import (
@@ -92,7 +96,15 @@ from repository import (
     buscar_portfolio_projeto_por_id,
     registrar_consentimento_publicacao,
     listar_consentimentos_por_projeto,
-    buscar_consentimento_publicacao_por_id
+    buscar_consentimento_publicacao_por_id,
+    criar_notificacao,
+    listar_notificacoes_por_usuario,
+    buscar_notificacao_por_id,
+    marcar_notificacao_como_lida,
+    criar_relatorio,
+    listar_relatorios,
+    listar_relatorios_por_usuario,
+    buscar_relatorio_por_id
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -848,3 +860,117 @@ def endpoint_buscar_consentimento_publicacao_por_id(id_consentimento: int):
         )
 
     return consentimento
+
+
+# ENDPOINTS DE NOTIFICAÇÕES
+
+@app.post("/api/v1/notificacoes", response_model=NotificacaoResponse, status_code=201)
+def endpoint_criar_notificacao(notificacao: NotificacaoCreate):
+    """
+    cria uma notificação para um usuário
+    """
+
+    try:
+        return criar_notificacao(notificacao)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível criar a notificação. Verifique se o usuário informado existe."
+        )
+
+
+@app.get("/api/v1/usuarios/{id_usuario}/notificacoes", response_model=list[NotificacaoResponse])
+def endpoint_listar_notificacoes_por_usuario(id_usuario: int):
+    """
+    lista todas as notificaçoes de um usuário
+    """
+
+    return listar_notificacoes_por_usuario(id_usuario)
+
+
+@app.get("/api/v1/notificacoes/{id_notificacao}", response_model=NotificacaoResponse)
+def endpoint_buscar_notificacao_por_id(id_notificacao: int):
+    """
+    Busca uma notificação específica pelo ID
+    """
+
+    notificacao = buscar_notificacao_por_id(id_notificacao)
+
+    if notificacao is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Notificação não encontrada."
+        )
+
+    return notificacao
+
+
+@app.patch("/api/v1/notificacoes/{id_notificacao}/marcar-como-lida", response_model=NotificacaoResponse)
+def endpoint_marcar_notificacao_como_lida(id_notificacao: int):
+    """
+    Marca uma notificação como lida
+    """
+
+    notificacao = marcar_notificacao_como_lida(id_notificacao)
+
+    if notificacao is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Notificação não encontrada."
+        )
+
+    return notificacao
+
+
+# ENDPOINTS DE RELATÓRIOS
+
+@app.post("/api/v1/relatorios", response_model=RelatorioResponse, status_code=201)
+def endpoint_criar_relatorio(relatorio: RelatorioCreate):
+    """
+    Registra um relatório gerado no sistema.
+    """
+
+    try:
+        return criar_relatorio(relatorio)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível criar o relatório. Verifique se o usuário informado existe."
+        )
+
+
+@app.get("/api/v1/relatorios", response_model=list[RelatorioResponse])
+def endpoint_listar_relatorios():
+    """
+    Lista todos os relatórios registrados no sistema
+    """
+
+    return listar_relatorios()
+
+
+@app.get("/api/v1/usuarios/{id_usuario}/relatorios", response_model=list[RelatorioResponse])
+def endpoint_listar_relatorios_por_usuario(id_usuario: int):
+    """
+    lista todos os relatórios gerados por um usuário específico
+    """
+
+    return listar_relatorios_por_usuario(id_usuario)
+
+
+@app.get("/api/v1/relatorios/{id_relatorio}", response_model=RelatorioResponse)
+def endpoint_buscar_relatorio_por_id(id_relatorio: int):
+    """
+    Busca um relatorio específico pelo ID
+    """
+
+    relatorio = buscar_relatorio_por_id(id_relatorio)
+
+    if relatorio is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Relatório não encontrado."
+        )
+
+    return relatorio

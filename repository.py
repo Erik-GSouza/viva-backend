@@ -17,7 +17,9 @@ from models import (
     AvaliacaoCreate,
     PortfolioCreate,
     PortfolioProjetoCreate,
-    ConsentimentoPublicacaoCreate
+    ConsentimentoPublicacaoCreate,
+    NotificacaoCreate,
+    RelatorioCreate
 )
 
 
@@ -1677,3 +1679,278 @@ def buscar_consentimento_publicacao_por_id(id_consentimento: int):
     connection.close()
 
     return row_to_dict(consentimento)
+
+# =========================
+# NOTIFICAÇÕES
+# =========================
+
+def criar_notificacao(notificacao: NotificacaoCreate):
+    """
+    Cria uma notificação para um usuário.
+    Exemplo: projeto aprovado, revisão solicitada ou projeto publicado.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_notificacao_criada = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO notificacao (
+                id_usuario,
+                titulo,
+                mensagem,
+                tipo,
+                lida,
+                link_destino
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                notificacao.id_usuario,
+                notificacao.titulo,
+                notificacao.mensagem,
+                notificacao.tipo,
+                notificacao.lida,
+                notificacao.link_destino
+            )
+        )
+
+        connection.commit()
+        id_notificacao_criada = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_notificacao_por_id(id_notificacao_criada)
+
+
+def listar_notificacoes_por_usuario(id_usuario: int):
+    """
+    Lista todas as notificações de um usuário.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_notificacao,
+            id_usuario,
+            titulo,
+            mensagem,
+            tipo,
+            lida,
+            link_destino,
+            data_criacao
+        FROM notificacao
+        WHERE id_usuario = ?
+        ORDER BY id_notificacao DESC
+        """,
+        (id_usuario,)
+    )
+
+    notificacoes = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(notificacao) for notificacao in notificacoes]
+
+
+def buscar_notificacao_por_id(id_notificacao: int):
+    """
+    Busca uma notificação específica pelo ID.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_notificacao,
+            id_usuario,
+            titulo,
+            mensagem,
+            tipo,
+            lida,
+            link_destino,
+            data_criacao
+        FROM notificacao
+        WHERE id_notificacao = ?
+        """,
+        (id_notificacao,)
+    )
+
+    notificacao = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(notificacao)
+
+
+def marcar_notificacao_como_lida(id_notificacao: int): # quando o cara abrir uma notificação no front-end. A API vai poder mudar lida de 0 para 1.
+    """
+    Marca uma notificação como lida.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE notificacao
+            SET lida = 1
+            WHERE id_notificacao = ?
+            """,
+            (id_notificacao,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_notificacao_por_id(id_notificacao)
+
+
+# RELATÓRIOS
+
+def criar_relatorio(relatorio: RelatorioCreate):
+    """
+    Registra um relatório gerado no sistema.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_relatorio_criado = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO relatorio (
+                id_usuario,
+                tipo_relatorio,
+                filtros,
+                formato,
+                caminho_arquivo,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                relatorio.id_usuario,
+                relatorio.tipo_relatorio,
+                relatorio.filtros,
+                relatorio.formato,
+                relatorio.caminho_arquivo,
+                relatorio.status
+            )
+        )
+
+        connection.commit()
+        id_relatorio_criado = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_relatorio_por_id(id_relatorio_criado)
+
+
+def listar_relatorios():
+    """
+    Lista todos os relatorios registrados no sistema
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_relatorio,
+            id_usuario,
+            tipo_relatorio,
+            filtros,
+            formato,
+            caminho_arquivo,
+            status,
+            data_geracao
+        FROM relatorio
+        ORDER BY id_relatorio DESC
+        """
+    )
+
+    relatorios = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(relatorio) for relatorio in relatorios]
+
+
+def listar_relatorios_por_usuario(id_usuario: int):
+    """
+    Lista todos os relatórios gerados por um usuário específico
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_relatorio,
+            id_usuario,
+            tipo_relatorio,
+            filtros,
+            formato,
+            caminho_arquivo,
+            status,
+            data_geracao
+        FROM relatorio
+        WHERE id_usuario = ?
+        ORDER BY id_relatorio DESC
+        """,
+        (id_usuario,)
+    )
+
+    relatorios = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(relatorio) for relatorio in relatorios]
+
+
+def buscar_relatorio_por_id(id_relatorio: int):
+    """
+    Busca um relatorio específico pelo ID
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_relatorio,
+            id_usuario,
+            tipo_relatorio,
+            filtros,
+            formato,
+            caminho_arquivo,
+            status,
+            data_geracao
+        FROM relatorio
+        WHERE id_relatorio = ?
+        """,
+        (id_relatorio,)
+    )
+
+    relatorio = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(relatorio)
