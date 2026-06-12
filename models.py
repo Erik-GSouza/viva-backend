@@ -215,3 +215,96 @@ class ProjetoTagVincular(BaseModel):
 class ProjetoCompetenciaVincular(BaseModel):
     id_competencia: int
     nivel: str
+
+
+# MODELOS DE VERSÃO DO PROJETO
+
+class VersaoProjetoCreate(BaseModel):
+    id_projeto: int
+    numero_versao: int
+    descricao_alteracao: Optional[str] = None
+    status_versao: str
+
+
+class VersaoProjetoResponse(BaseModel):
+    id_versao: int
+    id_projeto: int
+    numero_versao: int
+    descricao_alteracao: Optional[str] = None
+    data_envio: Optional[str] = None
+    status_versao: str
+
+
+# MODELOS DE ARQUIVO DO PROJETO
+
+class ArquivoProjetoCreate(BaseModel):
+    id_projeto: int
+    id_versao: Optional[int] = None
+    nome_arquivo: str
+    tipo_arquivo: str
+    url_arquivo: str
+    tamanho_arquivo: Optional[int] = None
+    principal: int = 0
+    nivel_acesso: str
+
+
+class ArquivoProjetoResponse(BaseModel):
+    id_arquivo: int
+    id_projeto: int
+    id_versao: Optional[int] = None
+    nome_arquivo: str
+    tipo_arquivo: str
+    url_arquivo: str
+    tamanho_arquivo: Optional[int] = None
+    data_upload: Optional[str] = None
+    principal: int
+    nivel_acesso: str
+
+
+# MODELOS DE AVALIAÇÃO
+
+class AvaliacaoCreate(BaseModel):
+    id_projeto: int
+    id_versao: int
+    id_professor: int
+    parecer: str
+    status_resultante: str
+    nota_final: Optional[float] = None
+
+
+class AvaliacaoResponse(BaseModel):
+    id_avaliacao: int
+    id_projeto: int
+    id_versao: int
+    id_professor: int
+    parecer: str
+    status_resultante: str
+    nota_final: Optional[float] = None
+    data_avaliacao: Optional[str] = None
+
+
+# MODELOS AUXILIARES PARA VERSÕES, ARQUIVOS E AVALIAÇOES
+# MESMA LOGICA DO ANTERIOR
+
+class VersaoProjetoVincular(BaseModel):
+    numero_versao: int
+    descricao_alteracao: Optional[str] = None
+    status_versao: str
+
+
+class ArquivoProjetoVincular(BaseModel):
+    id_versao: Optional[int] = None
+    nome_arquivo: str
+    tipo_arquivo: str
+    url_arquivo: str
+    tamanho_arquivo: Optional[int] = None
+    principal: int = 0
+    nivel_acesso: str
+
+
+class AvaliacaoVincular(BaseModel):
+    id_versao: int
+    id_professor: int
+    parecer: str
+    status_resultante: str
+    nota_final: Optional[float] = None

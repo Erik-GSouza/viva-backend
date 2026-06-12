@@ -1,7 +1,7 @@
 import sqlite3
 
-# Nome do arquivo do banco de dados SQLite
-# Quando o sistema rodar, esse arquivo será criado automaticamente na pasta do projeto
+# Nome do banco de dados
+# Quando o sistema rodar, esse arquivo vai ser criado automaticamente na pasta do projeto
 DATABASE_NAME = "viva.db"
 
 
@@ -189,6 +189,65 @@ def create_tables():
                 REFERENCES competencia(id_competencia),
 
             UNIQUE (id_projeto, id_competencia)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS versao_projeto (
+            id_versao INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_projeto INTEGER NOT NULL,
+            numero_versao INTEGER NOT NULL,
+            descricao_alteracao TEXT,
+            data_envio TEXT DEFAULT CURRENT_TIMESTAMP,
+            status_versao TEXT NOT NULL,
+
+            FOREIGN KEY (id_projeto)
+                REFERENCES projeto(id_projeto),
+
+            UNIQUE (id_projeto, numero_versao)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS arquivo_projeto (
+            id_arquivo INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_projeto INTEGER NOT NULL,
+            id_versao INTEGER,
+            nome_arquivo TEXT NOT NULL,
+            tipo_arquivo TEXT NOT NULL,
+            url_arquivo TEXT NOT NULL,
+            tamanho_arquivo INTEGER,
+            data_upload TEXT DEFAULT CURRENT_TIMESTAMP,
+            principal INTEGER DEFAULT 0,
+            nivel_acesso TEXT NOT NULL,
+
+            FOREIGN KEY (id_projeto)
+                REFERENCES projeto(id_projeto),
+
+            FOREIGN KEY (id_versao)
+                REFERENCES versao_projeto(id_versao)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS avaliacao (
+            id_avaliacao INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_projeto INTEGER NOT NULL,
+            id_versao INTEGER NOT NULL,
+            id_professor INTEGER NOT NULL,
+            parecer TEXT NOT NULL,
+            status_resultante TEXT NOT NULL,
+            nota_final REAL,
+            data_avaliacao TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (id_projeto)
+                REFERENCES projeto(id_projeto),
+
+            FOREIGN KEY (id_versao)
+                REFERENCES versao_projeto(id_versao),
+
+            FOREIGN KEY (id_professor)
+                REFERENCES usuario(id_usuario)
         );
     """)
 

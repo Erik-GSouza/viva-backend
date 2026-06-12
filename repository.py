@@ -11,7 +11,10 @@ from models import (
     TagTecnologiaCreate,
     ProjetoTagCreate,
     CompetenciaCreate,
-    ProjetoCompetenciaCreate
+    ProjetoCompetenciaCreate,
+    VersaoProjetoCreate,
+    ArquivoProjetoCreate,
+    AvaliacaoCreate
 )
 
 
@@ -1008,3 +1011,330 @@ def buscar_projeto_competencia_por_id(id_projeto_competencia: int):
     connection.close()
 
     return row_to_dict(projeto_competencia)
+
+
+# VERSÃO DO PROJETO
+
+def criar_versao_projeto(versao: VersaoProjetoCreate):
+    """
+    Insere uma nova versão de um projeto
+    permite manter o histprico quando o aluno reenvia o projeto corrigido
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_versao_criada = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO versao_projeto (
+                id_projeto,
+                numero_versao,
+                descricao_alteracao,
+                status_versao
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                versao.id_projeto,
+                versao.numero_versao,
+                versao.descricao_alteracao,
+                versao.status_versao
+            )
+        )
+
+        connection.commit()
+        id_versao_criada = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_versao_projeto_por_id(id_versao_criada)
+
+
+def listar_versoes_por_projeto(id_projeto: int):
+    """
+    Lista todas as versões enviadas de um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_versao,
+            id_projeto,
+            numero_versao,
+            descricao_alteracao,
+            data_envio,
+            status_versao
+        FROM versao_projeto
+        WHERE id_projeto = ?
+        ORDER BY numero_versao
+        """,
+        (id_projeto,)
+    )
+
+    versoes = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(versao) for versao in versoes]
+
+
+def buscar_versao_projeto_por_id(id_versao: int):
+    """
+    Busca uma versão específica pelo ID
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_versao,
+            id_projeto,
+            numero_versao,
+            descricao_alteracao,
+            data_envio,
+            status_versao
+        FROM versao_projeto
+        WHERE id_versao = ?
+        """,
+        (id_versao,)
+    )
+
+    versao = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(versao)
+
+
+# ARQUIVO DO PROJETO
+
+def criar_arquivo_projeto(arquivo: ArquivoProjetoCreate):
+    """
+    Cadastra as informações de um arquivo vinculado ao projeto
+    No momento, estamos registrando os dados do arquivo, não fazendo upload real
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_arquivo_criado = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO arquivo_projeto (
+                id_projeto,
+                id_versao,
+                nome_arquivo,
+                tipo_arquivo,
+                url_arquivo,
+                tamanho_arquivo,
+                principal,
+                nivel_acesso
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                arquivo.id_projeto,
+                arquivo.id_versao,
+                arquivo.nome_arquivo,
+                arquivo.tipo_arquivo,
+                arquivo.url_arquivo,
+                arquivo.tamanho_arquivo,
+                arquivo.principal,
+                arquivo.nivel_acesso
+            )
+        )
+
+        connection.commit()
+        id_arquivo_criado = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_arquivo_projeto_por_id(id_arquivo_criado)
+
+
+def listar_arquivos_por_projeto(id_projeto: int):
+    """
+    Lista todos os arquivos vinculados a um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_arquivo,
+            id_projeto,
+            id_versao,
+            nome_arquivo,
+            tipo_arquivo,
+            url_arquivo,
+            tamanho_arquivo,
+            data_upload,
+            principal,
+            nivel_acesso
+        FROM arquivo_projeto
+        WHERE id_projeto = ?
+        ORDER BY id_arquivo
+        """,
+        (id_projeto,)
+    )
+
+    arquivos = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(arquivo) for arquivo in arquivos]
+
+
+def buscar_arquivo_projeto_por_id(id_arquivo: int):
+    """
+    Busca um arquivo específico pelo ID
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_arquivo,
+            id_projeto,
+            id_versao,
+            nome_arquivo,
+            tipo_arquivo,
+            url_arquivo,
+            tamanho_arquivo,
+            data_upload,
+            principal,
+            nivel_acesso
+        FROM arquivo_projeto
+        WHERE id_arquivo = ?
+        """,
+        (id_arquivo,)
+    )
+
+    arquivo = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(arquivo)
+
+
+# AVALIAÇÃO
+
+def criar_avaliacao(avaliacao: AvaliacaoCreate):
+    """
+    Registra a avaliação feita pelo professor sobre uma versão do projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_avaliacao_criada = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO avaliacao (
+                id_projeto,
+                id_versao,
+                id_professor,
+                parecer,
+                status_resultante,
+                nota_final
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                avaliacao.id_projeto,
+                avaliacao.id_versao,
+                avaliacao.id_professor,
+                avaliacao.parecer,
+                avaliacao.status_resultante,
+                avaliacao.nota_final
+            )
+        )
+
+        connection.commit()
+        id_avaliacao_criada = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_avaliacao_por_id(id_avaliacao_criada)
+
+
+def listar_avaliacoes_por_projeto(id_projeto: int):
+    """
+    Lista todas as avaliações registradas para um projeto.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_avaliacao,
+            id_projeto,
+            id_versao,
+            id_professor,
+            parecer,
+            status_resultante,
+            nota_final,
+            data_avaliacao
+        FROM avaliacao
+        WHERE id_projeto = ?
+        ORDER BY id_avaliacao
+        """,
+        (id_projeto,)
+    )
+
+    avaliacoes = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(avaliacao) for avaliacao in avaliacoes]
+
+
+def buscar_avaliacao_por_id(id_avaliacao: int):
+    """
+    Busca uma avaliação específica pelo ID.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_avaliacao,
+            id_projeto,
+            id_versao,
+            id_professor,
+            parecer,
+            status_resultante,
+            nota_final,
+            data_avaliacao
+        FROM avaliacao
+        WHERE id_avaliacao = ?
+        """,
+        (id_avaliacao,)
+    )
+
+    avaliacao = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(avaliacao)
+

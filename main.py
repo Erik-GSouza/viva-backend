@@ -26,8 +26,18 @@ from models import (
     CompetenciaResponse,
     ProjetoCompetenciaCreate,
     ProjetoCompetenciaResponse,
-    ProjetoCompetenciaVincular
+    ProjetoCompetenciaVincular,
+    VersaoProjetoCreate,
+    VersaoProjetoResponse,
+    VersaoProjetoVincular,
+    ArquivoProjetoCreate,
+    ArquivoProjetoResponse,
+    ArquivoProjetoVincular,
+    AvaliacaoCreate,
+    AvaliacaoResponse,
+    AvaliacaoVincular
 )
+
 from repository import (
     criar_perfil,
     listar_perfis,
@@ -55,7 +65,16 @@ from repository import (
     listar_competencias,
     buscar_competencia_por_id,
     adicionar_competencia_ao_projeto,
-    listar_competencias_por_projeto
+    listar_competencias_por_projeto,
+    criar_versao_projeto,
+    listar_versoes_por_projeto,
+    buscar_versao_projeto_por_id,
+    criar_arquivo_projeto,
+    listar_arquivos_por_projeto,
+    buscar_arquivo_projeto_por_id,
+    criar_avaliacao,
+    listar_avaliacoes_por_projeto,
+    buscar_avaliacao_por_id
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -486,3 +505,163 @@ def endpoint_listar_competencias_por_projeto(id_projeto: int):
     """
 
     return listar_competencias_por_projeto(id_projeto)
+
+
+# ENDPOINTS DE VERSÕES DO PROJETO
+
+@app.post("/api/v1/projetos/{id_projeto}/versoes", response_model=VersaoProjetoResponse, status_code=201)
+def endpoint_criar_versao_projeto(id_projeto: int, versao: VersaoProjetoVincular):
+    """
+    Cria uma nova versão para um projeto
+    O ID do projeto vem da url
+    """
+
+    try:
+        dados_versao = VersaoProjetoCreate(
+            id_projeto=id_projeto,
+            numero_versao=versao.numero_versao,
+            descricao_alteracao=versao.descricao_alteracao,
+            status_versao=versao.status_versao
+        )
+
+        return criar_versao_projeto(dados_versao)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível criar a versão. Verifique se o projeto existe ou se esse número de versão já foi cadastrado."
+        )
+
+
+@app.get("/api/v1/projetos/{id_projeto}/versoes", response_model=list[VersaoProjetoResponse])
+def endpoint_listar_versoes_por_projeto(id_projeto: int):
+    """
+    Lista todas as versões de um projeto.
+    """
+
+    return listar_versoes_por_projeto(id_projeto)
+
+
+@app.get("/api/v1/projetos/{id_projeto}/versoes/{id_versao}", response_model=VersaoProjetoResponse)
+def endpoint_buscar_versao_projeto_por_id(id_projeto: int, id_versao: int):
+    """
+    Busca uma versão específica de um projeto.
+    """
+
+    versao = buscar_versao_projeto_por_id(id_versao)
+
+    if versao is None or versao["id_projeto"] != id_projeto:
+        raise HTTPException(
+            status_code=404,
+            detail="Versão não encontrada para este projeto."
+        )
+
+    return versao
+
+
+# ENDPOINTS DE ARQUIVOS DO PROJETO
+
+@app.post("/api/v1/projetos/{id_projeto}/arquivos", response_model=ArquivoProjetoResponse, status_code=201)
+def endpoint_criar_arquivo_projeto(id_projeto: int, arquivo: ArquivoProjetoVincular):
+    """
+    Cadastra as informações de um arquivo vinculado ao projeto
+    """
+
+    try:
+        dados_arquivo = ArquivoProjetoCreate(
+            id_projeto=id_projeto,
+            id_versao=arquivo.id_versao,
+            nome_arquivo=arquivo.nome_arquivo,
+            tipo_arquivo=arquivo.tipo_arquivo,
+            url_arquivo=arquivo.url_arquivo,
+            tamanho_arquivo=arquivo.tamanho_arquivo,
+            principal=arquivo.principal,
+            nivel_acesso=arquivo.nivel_acesso
+        )
+
+        return criar_arquivo_projeto(dados_arquivo)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível cadastrar o arquivo. Verifique se o projeto e a versão informados existem."
+        )
+
+
+@app.get("/api/v1/projetos/{id_projeto}/arquivos", response_model=list[ArquivoProjetoResponse])
+def endpoint_listar_arquivos_por_projeto(id_projeto: int):
+    """
+    Lsta todos os arquivos vinculados a um projeto
+    """
+
+    return listar_arquivos_por_projeto(id_projeto)
+
+
+@app.get("/api/v1/projetos/{id_projeto}/arquivos/{id_arquivo}", response_model=ArquivoProjetoResponse)
+def endpoint_buscar_arquivo_projeto_por_id(id_projeto: int, id_arquivo: int):
+    """
+    Busca um arquivo específico de um projeto
+    """
+
+    arquivo = buscar_arquivo_projeto_por_id(id_arquivo)
+
+    if arquivo is None or arquivo["id_projeto"] != id_projeto:
+        raise HTTPException(
+            status_code=404,
+            detail="Arquivo não encontrado para este projeto."
+        )
+
+    return arquivo
+
+
+# ENDPOINTS DE AVALIAÇÕES
+
+@app.post("/api/v1/projetos/{id_projeto}/avaliacoes", response_model=AvaliacaoResponse, status_code=201)
+def endpoint_criar_avaliacao(id_projeto: int, avaliacao: AvaliacaoVincular):
+    """
+    Registra uma avaliação feita pelo professor para uma ver. do projeto
+    """
+
+    try:
+        dados_avaliacao = AvaliacaoCreate(
+            id_projeto=id_projeto,
+            id_versao=avaliacao.id_versao,
+            id_professor=avaliacao.id_professor,
+            parecer=avaliacao.parecer,
+            status_resultante=avaliacao.status_resultante,
+            nota_final=avaliacao.nota_final
+        )
+
+        return criar_avaliacao(dados_avaliacao)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível registrar a avaliação. Verifique se projeto, versão e professor existem."
+        )
+
+
+@app.get("/api/v1/projetos/{id_projeto}/avaliacoes", response_model=list[AvaliacaoResponse])
+def endpoint_listar_avaliacoes_por_projeto(id_projeto: int):
+    """
+    Lista todas as avaliaçOes de um projeto.
+    """
+
+    return listar_avaliacoes_por_projeto(id_projeto)
+
+
+@app.get("/api/v1/avaliacoes/{id_avaliacao}", response_model=AvaliacaoResponse)
+def endpoint_buscar_avaliacao_por_id(id_avaliacao: int):
+    """
+    Busca uma avaliação especIfica pelo ID
+    """
+
+    avaliacao = buscar_avaliacao_por_id(id_avaliacao)
+
+    if avaliacao is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Avaliação não encontrada."
+        )
+
+    return avaliacao
