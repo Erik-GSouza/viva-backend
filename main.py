@@ -47,7 +47,8 @@ from models import (
     NotificacaoCreate,
     NotificacaoResponse,
     RelatorioCreate,
-    RelatorioResponse
+    RelatorioResponse,
+    ProjetoPublicoResponse
 )
 
 from repository import (
@@ -104,7 +105,10 @@ from repository import (
     criar_relatorio,
     listar_relatorios,
     listar_relatorios_por_usuario,
-    buscar_relatorio_por_id
+    buscar_relatorio_por_id,
+    listar_projetos_publicos,
+    buscar_projeto_publico_por_slug,
+    publicar_projeto
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -974,3 +978,50 @@ def endpoint_buscar_relatorio_por_id(id_relatorio: int):
         )
 
     return relatorio
+
+
+# ENDPOINTS DA VITRINE PÚBLICA
+
+@app.get("/api/v1/publico/projetos", response_model=list[ProjetoPublicoResponse])
+def endpoint_listar_projetos_publicos():
+    """
+    Lista os projetos publicados na vitrine pública
+    """
+
+    return listar_projetos_publicos()
+
+
+@app.get("/api/v1/publico/projetos/{slug_publico}", response_model=ProjetoPublicoResponse)
+def endpoint_buscar_projeto_publico_por_slug(slug_publico: str):
+    """
+    Busca um projeto público pelo slug
+    """
+
+    projeto = buscar_projeto_publico_por_slug(slug_publico)
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto público não encontrado."
+        )
+
+    return projeto
+
+
+# ENDPOINT DE PUBLICAÇÃO DE PROJETO
+
+@app.patch("/api/v1/projetos/{id_projeto}/publicar", response_model=ProjetoResponse)
+def endpoint_publicar_projeto(id_projeto: int):
+    """
+    Publica um projeto na vitrine pública
+    """
+
+    projeto = publicar_projeto(id_projeto)
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    return projeto

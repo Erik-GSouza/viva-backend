@@ -424,3 +424,21 @@ class RelatorioResponse(BaseModel):
     caminho_arquivo: Optional[str] = None
     status: str
     data_geracao: Optional[str] = None
+
+
+# MODELO DE PROJETO PÚBLICO
+
+class ProjetoPublicoResponse(BaseModel):
+    id_projeto: int
+    titulo: str
+    descricao: str
+    problema: Optional[str] = None
+    solucao: Optional[str] = None
+    status: str
+    publicado: int
+    slug_publico: Optional[str] = None
+    data_submissao: Optional[str] = None
+    data_aprovacao: Optional[str] = None
+    turma: Optional[str] = None
+    curso: Optional[str] = None
+    sigla_curso: Optional[str] = None

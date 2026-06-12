@@ -1954,3 +1954,125 @@ def buscar_relatorio_por_id(id_relatorio: int):
     connection.close()
 
     return row_to_dict(relatorio)
+
+
+# VITRINE PÚBLICA
+
+def listar_projetos_publicos():
+    """
+    Lista os projetos publicados na vitrine pública
+    Por agora, considera público todo projeto com publicado = 1
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            projeto.id_projeto,
+            projeto.titulo,
+            projeto.descricao,
+            projeto.problema,
+            projeto.solucao,
+            projeto.status,
+            projeto.publicado,
+            projeto.slug_publico,
+            projeto.data_submissao,
+            projeto.data_aprovacao,
+            turma.nome AS turma,
+            curso.nome AS curso,
+            curso.sigla AS sigla_curso
+        FROM projeto
+        INNER JOIN turma
+            ON projeto.id_turma = turma.id_turma
+        INNER JOIN curso
+            ON turma.id_curso = curso.id_curso
+        WHERE projeto.publicado = 1
+        ORDER BY projeto.data_aprovacao DESC
+        """
+    )
+
+    projetos = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(projeto) for projeto in projetos]
+
+
+def buscar_projeto_publico_por_slug(slug_publico: str):
+    """
+    Busca um projeto publico pelo slug
+    Ex de slug: sistema-viva
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            projeto.id_projeto,
+            projeto.titulo,
+            projeto.descricao,
+            projeto.problema,
+            projeto.solucao,
+            projeto.status,
+            projeto.publicado,
+            projeto.slug_publico,
+            projeto.data_submissao,
+            projeto.data_aprovacao,
+            turma.nome AS turma,
+            curso.nome AS curso,
+            curso.sigla AS sigla_curso
+        FROM projeto
+        INNER JOIN turma
+            ON projeto.id_turma = turma.id_turma
+        INNER JOIN curso
+            ON turma.id_curso = curso.id_curso
+        WHERE projeto.publicado = 1
+        AND projeto.slug_publico = ?
+        """,
+        (slug_publico,)
+    )
+
+    projeto = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(projeto)
+
+
+# PUBLICAÇÃO DE PROJETO
+
+def publicar_projeto(id_projeto: int):
+    """
+    Publica um projeto na vitrine pública
+    Ao publicar o projeto passa a aparecer nos endpoints publicos
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                publicado = 1,
+                status = 'aprovado',
+                data_aprovacao = COALESCE(data_aprovacao, CURRENT_TIMESTAMP), 
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (id_projeto,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)
+# linha 2064 = se data_aprovacao ainda estiver vazia, coloque a data atual; se já tiver uma data, mantenha a data antiga
+# evita trocar a data de aprovação toda vez que alguem chamar o endpoint
