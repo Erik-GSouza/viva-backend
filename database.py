@@ -251,5 +251,61 @@ def create_tables():
         );
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS portfolio (
+            id_portfolio INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_usuario INTEGER NOT NULL,
+            titulo TEXT NOT NULL,
+            bio TEXT,
+            slug_publico TEXT UNIQUE,
+            status TEXT NOT NULL,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP,
+            data_atualizacao TEXT,
+
+            FOREIGN KEY (id_usuario)
+                REFERENCES usuario(id_usuario),
+
+            UNIQUE (id_usuario)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS portfolio_projeto (
+            id_portfolio_projeto INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_portfolio INTEGER NOT NULL,
+            id_projeto INTEGER NOT NULL,
+            ordem_exibicao INTEGER,
+            destaque INTEGER DEFAULT 0,
+            data_adicao TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (id_portfolio)
+                REFERENCES portfolio(id_portfolio),
+
+            FOREIGN KEY (id_projeto)
+                REFERENCES projeto(id_projeto),
+
+            UNIQUE (id_portfolio, id_projeto)
+        );
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS consentimento_publicacao (
+            id_consentimento INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_projeto INTEGER NOT NULL,
+            id_usuario INTEGER NOT NULL,
+            autorizado INTEGER NOT NULL,
+            observacao TEXT,
+            data_consentimento TEXT DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY (id_projeto)
+                REFERENCES projeto(id_projeto),
+
+            FOREIGN KEY (id_usuario)
+                REFERENCES usuario(id_usuario),
+
+            UNIQUE (id_projeto, id_usuario)
+        );
+    """)
+
     connection.commit()
     connection.close()

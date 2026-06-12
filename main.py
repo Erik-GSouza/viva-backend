@@ -35,7 +35,15 @@ from models import (
     ArquivoProjetoVincular,
     AvaliacaoCreate,
     AvaliacaoResponse,
-    AvaliacaoVincular
+    AvaliacaoVincular,
+    PortfolioCreate,
+    PortfolioResponse,
+    PortfolioProjetoCreate,
+    PortfolioProjetoResponse,
+    PortfolioProjetoVincular,
+    ConsentimentoPublicacaoCreate,
+    ConsentimentoPublicacaoResponse,
+    ConsentimentoPublicacaoVincular
 )
 
 from repository import (
@@ -74,7 +82,17 @@ from repository import (
     buscar_arquivo_projeto_por_id,
     criar_avaliacao,
     listar_avaliacoes_por_projeto,
-    buscar_avaliacao_por_id
+    buscar_avaliacao_por_id,
+    criar_portfolio,
+    listar_portfolios,
+    buscar_portfolio_por_id,
+    buscar_portfolio_por_usuario,
+    adicionar_projeto_ao_portfolio,
+    listar_projetos_por_portfolio,
+    buscar_portfolio_projeto_por_id,
+    registrar_consentimento_publicacao,
+    listar_consentimentos_por_projeto,
+    buscar_consentimento_publicacao_por_id
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -665,3 +683,168 @@ def endpoint_buscar_avaliacao_por_id(id_avaliacao: int):
         )
 
     return avaliacao
+
+
+# ENDPOINTS DE PORTFÓLIO
+
+@app.post("/api/v1/portfolios", response_model=PortfolioResponse, status_code=201)
+def endpoint_criar_portfolio(portfolio: PortfolioCreate):
+    """
+    cria um portfólio para um usuario
+    Normalmente será usado para criar o portfolio de um aluno
+    """
+
+    try:
+        return criar_portfolio(portfolio)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível criar o portfólio. Verifique se o usuário existe ou se ele já possui um portfólio."
+        )
+
+
+@app.get("/api/v1/portfolios", response_model=list[PortfolioResponse])
+def endpoint_listar_portfolios():
+    """
+    lista todos os portfolios cadastrados
+    """
+
+    return listar_portfolios()
+
+
+@app.get("/api/v1/portfolios/{id_portfolio}", response_model=PortfolioResponse)
+def endpoint_buscar_portfolio_por_id(id_portfolio: int):
+    """
+    Busca um portfólio pelo ID
+    """
+
+    portfolio = buscar_portfolio_por_id(id_portfolio)
+
+    if portfolio is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Portfólio não encontrado."
+        )
+
+    return portfolio
+
+
+@app.get("/api/v1/usuarios/{id_usuario}/portfolio", response_model=PortfolioResponse)
+def endpoint_buscar_portfolio_por_usuario(id_usuario: int):
+    """
+    Busca o portfolio de um usuário específico
+    """
+
+    portfolio = buscar_portfolio_por_usuario(id_usuario)
+
+    if portfolio is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Este usuário ainda não possui portfólio."
+        )
+
+    return portfolio
+
+
+# ENDPOINTS DE PROJETOS NO PORTFÓLIO
+
+@app.post("/api/v1/portfolios/{id_portfolio}/projetos", response_model=PortfolioProjetoResponse, status_code=201)
+def endpoint_adicionar_projeto_ao_portfolio(id_portfolio: int, portfolio_projeto: PortfolioProjetoVincular):
+    """
+    adiciona um projeto ao portfólio
+    O ID do portfolio vem pela url
+    """
+
+    try:
+        dados_portfolio_projeto = PortfolioProjetoCreate(
+            id_portfolio=id_portfolio,
+            id_projeto=portfolio_projeto.id_projeto,
+            ordem_exibicao=portfolio_projeto.ordem_exibicao,
+            destaque=portfolio_projeto.destaque
+        )
+
+        return adicionar_projeto_ao_portfolio(dados_portfolio_projeto)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível adicionar o projeto ao portfólio. Verifique se o portfólio e o projeto existem ou se esse projeto já foi adicionado."
+        )
+
+
+@app.get("/api/v1/portfolios/{id_portfolio}/projetos", response_model=list[PortfolioProjetoResponse])
+def endpoint_listar_projetos_por_portfolio(id_portfolio: int):
+    """
+    Lista os projetos adicionados a um portfólio
+    """
+
+    return listar_projetos_por_portfolio(id_portfolio)
+
+
+@app.get("/api/v1/portfolios/{id_portfolio}/projetos/{id_portfolio_projeto}", response_model=PortfolioProjetoResponse)
+def endpoint_buscar_portfolio_projeto_por_id(id_portfolio: int, id_portfolio_projeto: int):
+    """
+    busca um vínculo específico entre portfolio e projeto.
+    """
+
+    portfolio_projeto = buscar_portfolio_projeto_por_id(id_portfolio_projeto)
+
+    if portfolio_projeto is None or portfolio_projeto["id_portfolio"] != id_portfolio:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado neste portfólio."
+        )
+
+    return portfolio_projeto
+
+
+# ENDPOINTS DE CONSENTIMENTO DE PUBLICAÇÃO
+
+@app.post("/api/v1/projetos/{id_projeto}/consentimentos", response_model=ConsentimentoPublicacaoResponse, status_code=201)
+def endpoint_registrar_consentimento_publicacao(id_projeto: int, consentimento: ConsentimentoPublicacaoVincular):
+    """
+    Registra se um usuario autorizou ou não a publicação de um projeto
+    """
+
+    try:
+        dados_consentimento = ConsentimentoPublicacaoCreate(
+            id_projeto=id_projeto,
+            id_usuario=consentimento.id_usuario,
+            autorizado=consentimento.autorizado,
+            observacao=consentimento.observacao
+        )
+
+        return registrar_consentimento_publicacao(dados_consentimento)
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível registrar o consentimento. Verifique se o projeto e o usuário existem ou se esse consentimento já foi registrado."
+        )
+
+
+@app.get("/api/v1/projetos/{id_projeto}/consentimentos", response_model=list[ConsentimentoPublicacaoResponse])
+def endpoint_listar_consentimentos_por_projeto(id_projeto: int):
+    """
+    Lista os consentimentos de publicação de um projeto
+    """
+
+    return listar_consentimentos_por_projeto(id_projeto)
+
+
+@app.get("/api/v1/consentimentos/{id_consentimento}", response_model=ConsentimentoPublicacaoResponse)
+def endpoint_buscar_consentimento_publicacao_por_id(id_consentimento: int):
+    """
+    Busca um consentimento específico pelo ID
+    """
+
+    consentimento = buscar_consentimento_publicacao_por_id(id_consentimento)
+
+    if consentimento is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Consentimento não encontrado."
+        )
+
+    return consentimento

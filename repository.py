@@ -14,7 +14,10 @@ from models import (
     ProjetoCompetenciaCreate,
     VersaoProjetoCreate,
     ArquivoProjetoCreate,
-    AvaliacaoCreate
+    AvaliacaoCreate,
+    PortfolioCreate,
+    PortfolioProjetoCreate,
+    ConsentimentoPublicacaoCreate
 )
 
 
@@ -23,7 +26,7 @@ from models import (
 def row_to_dict(row):
     """
     Converte uma linha retornada pelo SQLite em dicionário.
-    Isso facilita devolver os dados no formato JSON pela API
+    facilita devolver os dados no formato JSON pela API
     """
 
     if row is None:
@@ -37,7 +40,7 @@ def row_to_dict(row):
 def criar_perfil(perfil: PerfilCreate):
     """
     Insere um novo perfil no banco de dados.
-    Exemplo: Aluno, Professor, Coordenador ou Administrador.
+    ex: Aluno, Professor, Coordenador ou Administrador.
     """
 
     connection = get_connection()
@@ -1338,3 +1341,339 @@ def buscar_avaliacao_por_id(id_avaliacao: int):
 
     return row_to_dict(avaliacao)
 
+
+# PORTFÓLIO
+
+def criar_portfolio(portfolio: PortfolioCreate):
+    """
+    Cria um portfólio para um usuario
+    Normalmente esse usuário será um aluno
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_portfolio_criado = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO portfolio (
+                id_usuario,
+                titulo,
+                bio,
+                slug_publico,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                portfolio.id_usuario,
+                portfolio.titulo,
+                portfolio.bio,
+                portfolio.slug_publico,
+                portfolio.status
+            )
+        )
+
+        connection.commit()
+        id_portfolio_criado = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_portfolio_por_id(id_portfolio_criado)
+
+
+def listar_portfolios():
+    """
+    Lista todos os portfolios cadastrados
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_portfolio,
+            id_usuario,
+            titulo,
+            bio,
+            slug_publico,
+            status,
+            data_criacao,
+            data_atualizacao
+        FROM portfolio
+        ORDER BY id_portfolio
+        """
+    )
+
+    portfolios = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(portfolio) for portfolio in portfolios]
+
+
+def buscar_portfolio_por_id(id_portfolio: int):
+    """
+    busca um portfolio pelo ID
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_portfolio,
+            id_usuario,
+            titulo,
+            bio,
+            slug_publico,
+            status,
+            data_criacao,
+            data_atualizacao
+        FROM portfolio
+        WHERE id_portfolio = ?
+        """,
+        (id_portfolio,)
+    )
+
+    portfolio = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(portfolio)
+
+
+def buscar_portfolio_por_usuario(id_usuario: int):
+    """
+    Busca o portfólio de um usuário especifico
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_portfolio,
+            id_usuario,
+            titulo,
+            bio,
+            slug_publico,
+            status,
+            data_criacao,
+            data_atualizacao
+        FROM portfolio
+        WHERE id_usuario = ?
+        """,
+        (id_usuario,)
+    )
+
+    portfolio = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(portfolio)
+
+
+# PROJETOS NO PORTFÓLIO
+
+def adicionar_projeto_ao_portfolio(portfolio_projeto: PortfolioProjetoCreate):
+    """
+    Adiciona um projeto ao portfólio de um usuario
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_portfolio_projeto_criado = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO portfolio_projeto (
+                id_portfolio,
+                id_projeto,
+                ordem_exibicao,
+                destaque
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                portfolio_projeto.id_portfolio,
+                portfolio_projeto.id_projeto,
+                portfolio_projeto.ordem_exibicao,
+                portfolio_projeto.destaque
+            )
+        )
+
+        connection.commit()
+        id_portfolio_projeto_criado = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_portfolio_projeto_por_id(id_portfolio_projeto_criado)
+
+
+def listar_projetos_por_portfolio(id_portfolio: int):
+    """
+    Lista os projetos adicionados a um portfólio
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_portfolio_projeto,
+            id_portfolio,
+            id_projeto,
+            ordem_exibicao,
+            destaque,
+            data_adicao
+        FROM portfolio_projeto
+        WHERE id_portfolio = ?
+        ORDER BY ordem_exibicao, id_portfolio_projeto
+        """,
+        (id_portfolio,)
+    )
+
+    projetos = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(projeto) for projeto in projetos]
+
+
+def buscar_portfolio_projeto_por_id(id_portfolio_projeto: int):
+    """
+    Busca um vínculo específico entre portfólio e projeto.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_portfolio_projeto,
+            id_portfolio,
+            id_projeto,
+            ordem_exibicao,
+            destaque,
+            data_adicao
+        FROM portfolio_projeto
+        WHERE id_portfolio_projeto = ?
+        """,
+        (id_portfolio_projeto,)
+    )
+
+    portfolio_projeto = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(portfolio_projeto)
+
+
+# CONSENTIMENTO DE PUBLICAÇÃO
+
+def registrar_consentimento_publicacao(consentimento: ConsentimentoPublicacaoCreate):
+    """
+    Registra se um usuário autorizou ou não a publicação de um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    id_consentimento_criado = None
+
+    try:
+        cursor.execute(
+            """
+            INSERT INTO consentimento_publicacao (
+                id_projeto,
+                id_usuario,
+                autorizado,
+                observacao
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                consentimento.id_projeto,
+                consentimento.id_usuario,
+                consentimento.autorizado,
+                consentimento.observacao
+            )
+        )
+
+        connection.commit()
+        id_consentimento_criado = cursor.lastrowid
+
+    finally:
+        connection.close()
+
+    return buscar_consentimento_publicacao_por_id(id_consentimento_criado)
+
+
+def listar_consentimentos_por_projeto(id_projeto: int):
+    """
+    Lista todos os consentimentos registrados para um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_consentimento,
+            id_projeto,
+            id_usuario,
+            autorizado,
+            observacao,
+            data_consentimento
+        FROM consentimento_publicacao
+        WHERE id_projeto = ?
+        ORDER BY id_consentimento
+        """,
+        (id_projeto,)
+    )
+
+    consentimentos = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(consentimento) for consentimento in consentimentos]
+
+
+def buscar_consentimento_publicacao_por_id(id_consentimento: int):
+    """
+    Busca um consentimento específico pelo ID
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_consentimento,
+            id_projeto,
+            id_usuario,
+            autorizado,
+            observacao,
+            data_consentimento
+        FROM consentimento_publicacao
+        WHERE id_consentimento = ?
+        """,
+        (id_consentimento,)
+    )
+
+    consentimento = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(consentimento)

@@ -1,5 +1,6 @@
-from typing import Optional
-from pydantic import BaseModel
+from typing import Optional # uma variável pode ser de um tipo específico ou None
+from pydantic import BaseModel #  Importa a classe base do Pydantic para criar modelos de dados 
+                               #  Ao herdar de BaseModel, seus campos são automaticamente validados e convertidos para tipos definidos
 
 
 # MODELOS DE PERFIL
@@ -308,3 +309,74 @@ class AvaliacaoVincular(BaseModel):
     parecer: str
     status_resultante: str
     nota_final: Optional[float] = None
+
+
+# MODELOS DE PORTFOLIO
+
+class PortfolioCreate(BaseModel):
+    id_usuario: int
+    titulo: str
+    bio: Optional[str] = None
+    slug_publico: Optional[str] = None
+    status: str
+
+
+class PortfolioResponse(BaseModel):
+    id_portfolio: int
+    id_usuario: int
+    titulo: str
+    bio: Optional[str] = None
+    slug_publico: Optional[str] = None
+    status: str
+    data_criacao: Optional[str] = None
+    data_atualizacao: Optional[str] = None
+
+
+# MODELOS DE PROJETO NO PORTFÓLIO
+
+class PortfolioProjetoCreate(BaseModel):
+    id_portfolio: int
+    id_projeto: int
+    ordem_exibicao: Optional[int] = None
+    destaque: int = 0
+
+
+class PortfolioProjetoResponse(BaseModel):
+    id_portfolio_projeto: int
+    id_portfolio: int
+    id_projeto: int
+    ordem_exibicao: Optional[int] = None
+    destaque: int
+    data_adicao: Optional[str] = None
+
+
+# MODELOS DE CONSENTIMENTO DE PUBLICAÇÃO
+
+class ConsentimentoPublicacaoCreate(BaseModel):
+    id_projeto: int
+    id_usuario: int
+    autorizado: int
+    observacao: Optional[str] = None
+
+
+class ConsentimentoPublicacaoResponse(BaseModel):
+    id_consentimento: int
+    id_projeto: int
+    id_usuario: int
+    autorizado: int
+    observacao: Optional[str] = None
+    data_consentimento: Optional[str] = None
+
+# MODELOS AUXILIARES PARA PORTFÓLIO E CONSENTIMENTO
+# MESMA LOGICA DO ANTERIOR, inves de mandar no corpo passa na url
+
+class PortfolioProjetoVincular(BaseModel):
+    id_projeto: int
+    ordem_exibicao: Optional[int] = None
+    destaque: int = 0
+
+
+class ConsentimentoPublicacaoVincular(BaseModel):
+    id_usuario: int
+    autorizado: int
+    observacao: Optional[str] = None
