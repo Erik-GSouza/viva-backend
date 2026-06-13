@@ -51,7 +51,8 @@ from models import (
     RelatorioResponse,
     ProjetoPublicoResponse,
     LoginRequest,
-    LoginResponse
+    LoginResponse,
+    ProjetoStatusUpdate
 )
 
 from repository import (
@@ -112,7 +113,11 @@ from repository import (
     listar_projetos_publicos,
     buscar_projeto_publico_por_slug,
     publicar_projeto,
-    autenticar_usuario
+    autenticar_usuario,
+    atualizar_status_projeto,
+    aprovar_projeto,
+    solicitar_revisao_projeto,
+    rejeitar_projeto
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1062,3 +1067,76 @@ def endpoint_login(dados_login: LoginRequest):
         )
 
     return usuario
+
+
+# ENDPOINTS DE STATUS E AÇÕES DO PROJETO
+
+@app.patch("/api/v1/projetos/{id_projeto}/status", response_model=ProjetoResponse)
+def endpoint_atualizar_status_projeto(id_projeto: int, dados_status: ProjetoStatusUpdate):
+    """
+    Atualiza o status de um projeto
+    """
+
+    projeto = atualizar_status_projeto(
+        id_projeto,
+        dados_status.status
+    )
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    return projeto
+
+
+@app.patch("/api/v1/projetos/{id_projeto}/aprovar", response_model=ProjetoResponse)
+def endpoint_aprovar_projeto(id_projeto: int):
+    """
+    Aprova um projeto
+    """
+
+    projeto = aprovar_projeto(id_projeto)
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    return projeto
+
+
+@app.patch("/api/v1/projetos/{id_projeto}/solicitar-revisao", response_model=ProjetoResponse)
+def endpoint_solicitar_revisao_projeto(id_projeto: int):
+    """
+    Solicita revisão de um projeto
+    """
+
+    projeto = solicitar_revisao_projeto(id_projeto)
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    return projeto
+
+
+@app.patch("/api/v1/projetos/{id_projeto}/rejeitar", response_model=ProjetoResponse)
+def endpoint_rejeitar_projeto(id_projeto: int):
+    """
+    Rejeita um projeto
+    """
+
+    projeto = rejeitar_projeto(id_projeto)
+
+    if projeto is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    return projeto

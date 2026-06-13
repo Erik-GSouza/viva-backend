@@ -2148,3 +2148,119 @@ def autenticar_usuario(email: str, senha: str):
         connection.close()
 
     return row_to_dict(usuario_encontrado)
+
+
+# STATUS E AÇÕES DO PROJETO
+
+def atualizar_status_projeto(id_projeto: int, novo_status: str):
+    """
+    Atualiza status de um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                status = ?,
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (novo_status, id_projeto)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)
+
+
+def aprovar_projeto(id_projeto: int):
+    """
+    Aprova um projeto
+    O projeto aprovado ainda não é publicado automaticamente na vitrine
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                status = 'aprovado',
+                data_aprovacao = COALESCE(data_aprovacao, CURRENT_TIMESTAMP),
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (id_projeto,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)
+
+
+def solicitar_revisao_projeto(id_projeto: int):
+    """
+    Marca um projeto como revisão solicitada
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                status = 'revisao_solicitada',
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (id_projeto,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)
+
+
+def rejeitar_projeto(id_projeto: int):
+    """
+    Rejeita um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                status = 'rejeitado',
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (id_projeto,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)

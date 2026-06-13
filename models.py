@@ -465,3 +465,10 @@ class LoginResponse(BaseModel):
     foto_perfil: Optional[str] = None
     data_cadastro: Optional[str] = None
     data_ultimo_acesso: Optional[str] = None
+
+
+# MODELO DE ATUALIZAÇÃO DE STATUS DO PROJETO
+
+class ProjetoStatusUpdate(BaseModel):
+    status: str
+# modelo usado no endpoint genérico: PATCH /api/v1/projetos/{id_projeto}/status
