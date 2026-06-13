@@ -442,3 +442,26 @@ class ProjetoPublicoResponse(BaseModel):
     turma: Optional[str] = None
     curso: Optional[str] = None
     sigla_curso: Optional[str] = None
+
+
+# MODELOS DE LOGIN
+
+class LoginRequest(BaseModel):
+    email: str
+    senha: str
+
+
+class LoginResponse(BaseModel):
+    id_usuario: int
+    id_perfil: int
+    id_turma: Optional[int] = None
+    nome: str
+    email: str
+    matricula: Optional[str] = None
+    departamento: Optional[str] = None
+    tipo_aluno: Optional[str] = None
+    status: str
+    telefone: Optional[str] = None
+    foto_perfil: Optional[str] = None
+    data_cadastro: Optional[str] = None
+    data_ultimo_acesso: Optional[str] = None

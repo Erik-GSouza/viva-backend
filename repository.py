@@ -2076,3 +2076,75 @@ def publicar_projeto(id_projeto: int):
     return buscar_projeto_por_id(id_projeto)
 # linha 2064 = se data_aprovacao ainda estiver vazia, coloque a data atual; se já tiver uma data, mantenha a data antiga
 # evita trocar a data de aprovação toda vez que alguem chamar o endpoint
+
+
+# LOGIN
+
+def autenticar_usuario(email: str, senha: str):
+    """
+    uma autenticação simples
+    Verifica se existe um usuário ativo com o e-mail e a senha informados
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    usuario_encontrado = None
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                id_usuario
+            FROM usuario
+            WHERE email = ?
+            AND senha_hash = ?
+            AND status = 'ativo'
+            """,
+            (email, senha)
+        )
+
+        usuario = cursor.fetchone()
+
+        if usuario is not None:
+            id_usuario = usuario["id_usuario"]
+
+            cursor.execute(
+                """
+                UPDATE usuario
+                SET data_ultimo_acesso = CURRENT_TIMESTAMP
+                WHERE id_usuario = ?
+                """,
+                (id_usuario,)
+            )
+
+            connection.commit()
+
+            cursor.execute(
+                """
+                SELECT
+                    id_usuario,
+                    id_perfil,
+                    id_turma,
+                    nome,
+                    email,
+                    matricula,
+                    departamento,
+                    tipo_aluno,
+                    status,
+                    telefone,
+                    foto_perfil,
+                    data_cadastro,
+                    data_ultimo_acesso
+                FROM usuario
+                WHERE id_usuario = ?
+                """,
+                (id_usuario,)
+            )
+
+            usuario_encontrado = cursor.fetchone()
+
+    finally:
+        connection.close()
+
+    return row_to_dict(usuario_encontrado)

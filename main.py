@@ -49,7 +49,9 @@ from models import (
     NotificacaoResponse,
     RelatorioCreate,
     RelatorioResponse,
-    ProjetoPublicoResponse
+    ProjetoPublicoResponse,
+    LoginRequest,
+    LoginResponse
 )
 
 from repository import (
@@ -109,7 +111,8 @@ from repository import (
     buscar_relatorio_por_id,
     listar_projetos_publicos,
     buscar_projeto_publico_por_slug,
-    publicar_projeto
+    publicar_projeto,
+    autenticar_usuario
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1037,3 +1040,25 @@ def endpoint_publicar_projeto(id_projeto: int):
         )
 
     return projeto
+
+
+# ENDPOINT DE LOGIN
+
+@app.post("/api/v1/login", response_model=LoginResponse)
+def endpoint_login(dados_login: LoginRequest):
+    """
+    faz login no sistema
+    """
+
+    usuario = autenticar_usuario(
+        dados_login.email,
+        dados_login.senha
+    )
+
+    if usuario is None:
+        raise HTTPException(
+            status_code=401,
+            detail="E-mail ou senha inválidos, ou usuário inativo."
+        )
+
+    return usuario
