@@ -472,3 +472,40 @@ class LoginResponse(BaseModel):
 class ProjetoStatusUpdate(BaseModel):
     status: str
 # modelo usado no endpoint genérico: PATCH /api/v1/projetos/{id_projeto}/status
+
+
+# MODELOS DE ATUALIZAÇÃO
+
+class StatusUpdate(BaseModel):
+    status: str
+# repository.py n precisa saber o que é StatusUpdate. Ele só recebe uma string por isso n importamos essa
+# Porque o repository.py trabalha diretamente com o valor final (ativo, inativo, bloqueado)
+
+class UsuarioUpdate(BaseModel):
+    id_perfil: int
+    id_turma: Optional[int] = None
+    nome: str
+    email: str
+    senha_hash: Optional[str] = None
+    matricula: Optional[str] = None
+    departamento: Optional[str] = None
+    tipo_aluno: Optional[str] = None
+    status: str
+    telefone: Optional[str] = None
+    foto_perfil: Optional[str] = None
+
+
+class CursoUpdate(BaseModel):
+    nome: str
+    sigla: str
+    descricao: Optional[str] = None
+    status: str
+
+
+class TurmaUpdate(BaseModel):
+    id_curso: int
+    nome: str
+    semestre: str
+    ano: int
+    turno: str
+    status: str

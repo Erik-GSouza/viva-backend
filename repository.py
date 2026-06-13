@@ -19,7 +19,10 @@ from models import (
     PortfolioProjetoCreate,
     ConsentimentoPublicacaoCreate,
     NotificacaoCreate,
-    RelatorioCreate
+    RelatorioCreate,
+    UsuarioUpdate,
+    CursoUpdate,
+    TurmaUpdate
 )
 
 
@@ -2264,3 +2267,213 @@ def rejeitar_projeto(id_projeto: int):
         connection.close()
 
     return buscar_projeto_por_id(id_projeto)
+
+
+# ATUALIZAÇÃO DE USUÁRIOS, CURSOS E TURMAS
+
+def atualizar_usuario(id_usuario: int, usuario: UsuarioUpdate):
+    """
+    Atualiza os dados de um usuario
+    Se a senha não for informada, deixa a senha atual
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE usuario
+            SET
+                id_perfil = ?,
+                id_turma = ?,
+                nome = ?,
+                email = ?,
+                senha_hash = COALESCE(?, senha_hash), 
+                matricula = ?,
+                departamento = ?,
+                tipo_aluno = ?,
+                status = ?,
+                telefone = ?,
+                foto_perfil = ?
+            WHERE id_usuario = ?
+            """,
+            (
+                usuario.id_perfil,
+                usuario.id_turma,
+                usuario.nome,
+                usuario.email,
+                usuario.senha_hash,
+                usuario.matricula,
+                usuario.departamento,
+                usuario.tipo_aluno,
+                usuario.status,
+                usuario.telefone,
+                usuario.foto_perfil,
+                id_usuario
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_usuario_por_id(id_usuario)
+# senha_hash = COLESCE siginifica que se uma nova senha for enviada, atualiza. Se vier None/null, deixa a senha antiga
+
+def atualizar_status_usuario(id_usuario: int, novo_status: str):
+    """
+    Atualiza apenas o status de um usuário
+    Ex: ativo, inativo ou bloqueado
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE usuario
+            SET status = ?
+            WHERE id_usuario = ?
+            """,
+            (novo_status, id_usuario)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_usuario_por_id(id_usuario)
+
+
+def atualizar_curso(id_curso: int, curso: CursoUpdate):
+    """
+    Atualiza os dados de um curso
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE curso
+            SET
+                nome = ?,
+                sigla = ?,
+                descricao = ?,
+                status = ?
+            WHERE id_curso = ?
+            """,
+            (
+                curso.nome,
+                curso.sigla,
+                curso.descricao,
+                curso.status,
+                id_curso
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_curso_por_id(id_curso)
+
+
+def atualizar_status_curso(id_curso: int, novo_status: str):
+    """
+    Atualiza apenas o status de um curso
+    Ex: ativo ou inativo
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE curso
+            SET status = ?
+            WHERE id_curso = ?
+            """,
+            (novo_status, id_curso)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_curso_por_id(id_curso)
+
+
+def atualizar_turma(id_turma: int, turma: TurmaUpdate):
+    """
+    Atualiza os dados de uma turma
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE turma
+            SET
+                id_curso = ?,
+                nome = ?,
+                semestre = ?,
+                ano = ?,
+                turno = ?,
+                status = ?
+            WHERE id_turma = ?
+            """,
+            (
+                turma.id_curso,
+                turma.nome,
+                turma.semestre,
+                turma.ano,
+                turma.turno,
+                turma.status,
+                id_turma
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_turma_por_id(id_turma)
+
+
+def atualizar_status_turma(id_turma: int, novo_status: str):
+    """
+    Atualiza apenas o status de uma turma.
+    Ex: ativa ou inativa
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE turma
+            SET status = ?
+            WHERE id_turma = ?
+            """,
+            (novo_status, id_turma)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_turma_por_id(id_turma)

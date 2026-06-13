@@ -52,7 +52,11 @@ from models import (
     ProjetoPublicoResponse,
     LoginRequest,
     LoginResponse,
-    ProjetoStatusUpdate
+    ProjetoStatusUpdate,
+    StatusUpdate,
+    UsuarioUpdate,
+    CursoUpdate,
+    TurmaUpdate
 )
 
 from repository import (
@@ -117,7 +121,13 @@ from repository import (
     atualizar_status_projeto,
     aprovar_projeto,
     solicitar_revisao_projeto,
-    rejeitar_projeto
+    rejeitar_projeto,
+    atualizar_usuario,
+    atualizar_status_usuario,
+    atualizar_curso,
+    atualizar_status_curso,
+    atualizar_turma,
+    atualizar_status_turma
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1140,3 +1150,132 @@ def endpoint_rejeitar_projeto(id_projeto: int):
         )
 
     return projeto
+
+
+# ENDPOINTS DE ATUALIZAÇÃO DE USUÁRIOS
+
+@app.put("/api/v1/usuarios/{id_usuario}", response_model=UsuarioResponse)
+def endpoint_atualizar_usuario(id_usuario: int, usuario: UsuarioUpdate):
+    """
+    Atualiza os dados de um usuário.
+    """
+
+    try:
+        usuario_atualizado = atualizar_usuario(id_usuario, usuario)
+
+        if usuario_atualizado is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Usuário não encontrado."
+            )
+
+        return usuario_atualizado
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar o usuário. Verifique se perfil, turma, e-mail ou matrícula são válidos."
+        )
+
+
+@app.patch("/api/v1/usuarios/{id_usuario}/status", response_model=UsuarioResponse)
+def endpoint_atualizar_status_usuario(id_usuario: int, dados_status: StatusUpdate):
+    """
+    Atualiza apenas o status de um usuario
+    """
+
+    usuario = atualizar_status_usuario(id_usuario, dados_status.status)
+
+    if usuario is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado."
+        )
+
+    return usuario
+
+
+# ENDPOINTS DE ATUALIZAÇÃO DE CURSOS
+
+@app.put("/api/v1/cursos/{id_curso}", response_model=CursoResponse)
+def endpoint_atualizar_curso(id_curso: int, curso: CursoUpdate):
+    """
+    Atualiza os dados de um curso.
+    """
+
+    try:
+        curso_atualizado = atualizar_curso(id_curso, curso)
+
+        if curso_atualizado is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Curso não encontrado."
+            )
+
+        return curso_atualizado
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar o curso. Verifique se os dados informados são válidos."
+        )
+
+
+@app.patch("/api/v1/cursos/{id_curso}/status", response_model=CursoResponse)
+def endpoint_atualizar_status_curso(id_curso: int, dados_status: StatusUpdate):
+    """
+    Atualiza apenas o status de um curso.
+    """
+
+    curso = atualizar_status_curso(id_curso, dados_status.status)
+
+    if curso is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Curso não encontrado."
+        )
+
+    return curso
+
+
+# ENDPOINTS DE ATUALIZAÇÃO DE TURMAS
+
+@app.put("/api/v1/turmas/{id_turma}", response_model=TurmaResponse)
+def endpoint_atualizar_turma(id_turma: int, turma: TurmaUpdate):
+    """
+    Atualiza os dados de uma turma
+    """
+
+    try:
+        turma_atualizada = atualizar_turma(id_turma, turma)
+
+        if turma_atualizada is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Turma não encontrada."
+            )
+
+        return turma_atualizada
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar a turma. Verifique se o curso informado existe."
+        )
+
+
+@app.patch("/api/v1/turmas/{id_turma}/status", response_model=TurmaResponse)
+def endpoint_atualizar_status_turma(id_turma: int, dados_status: StatusUpdate):
+    """
+    Atualiza apenas o status de uma turma
+    """
+
+    turma = atualizar_status_turma(id_turma, dados_status.status)
+
+    if turma is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Turma não encontrada."
+        )
+
+    return turma
