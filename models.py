@@ -509,3 +509,32 @@ class TurmaUpdate(BaseModel):
     ano: int
     turno: str
     status: str
+
+
+# MODELOS DE ATUALIZAÇÃO DE PROJETOS, TAGS E COMPETÊNCIAS
+
+class ProjetoUpdate(BaseModel):
+    id_turma: int
+    id_usuario_submissor: int
+    id_professor_orientador: int
+    titulo: str
+    descricao: str
+    problema: Optional[str] = None
+    solucao: Optional[str] = None
+    status: str
+    publicado: int = 0
+    slug_publico: Optional[str] = None
+
+
+class TagTecnologiaUpdate(BaseModel):
+    nome: str
+    categoria: str
+    cor: Optional[str] = None
+    status: str
+
+
+class CompetenciaUpdate(BaseModel):
+    nome: str
+    descricao: Optional[str] = None
+    categoria: str
+    status: str

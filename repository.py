@@ -22,7 +22,10 @@ from models import (
     RelatorioCreate,
     UsuarioUpdate,
     CursoUpdate,
-    TurmaUpdate
+    TurmaUpdate,
+    ProjetoUpdate,
+    TagTecnologiaUpdate,
+    CompetenciaUpdate
 )
 
 
@@ -2477,3 +2480,180 @@ def atualizar_status_turma(id_turma: int, novo_status: str):
         connection.close()
 
     return buscar_turma_por_id(id_turma)
+
+
+# ATUALIZAÇÃO DE PROJETOS, TAGS E COMPETÊNCIAS
+
+def atualizar_projeto(id_projeto: int, projeto: ProjetoUpdate):
+    """
+    Atualiza os dados principais de um projeto.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE projeto
+            SET
+                id_turma = ?,
+                id_usuario_submissor = ?,
+                id_professor_orientador = ?,
+                titulo = ?,
+                descricao = ?,
+                problema = ?,
+                solucao = ?,
+                status = ?,
+                publicado = ?,
+                slug_publico = ?,
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            """,
+            (
+                projeto.id_turma,
+                projeto.id_usuario_submissor,
+                projeto.id_professor_orientador,
+                projeto.titulo,
+                projeto.descricao,
+                projeto.problema,
+                projeto.solucao,
+                projeto.status,
+                projeto.publicado,
+                projeto.slug_publico,
+                id_projeto
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_projeto_por_id(id_projeto)
+
+
+def atualizar_tag_tecnologia(id_tag: int, tag: TagTecnologiaUpdate):
+    """
+    Atualiza os dados de uma tag ou tecnologia
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE tag_tecnologia
+            SET
+                nome = ?,
+                categoria = ?,
+                cor = ?,
+                status = ?
+            WHERE id_tag = ?
+            """,
+            (
+                tag.nome,
+                tag.categoria,
+                tag.cor,
+                tag.status,
+                id_tag
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_tag_tecnologia_por_id(id_tag)
+
+
+def arquivar_tag_tecnologia(id_tag: int):
+    """
+    Arquiva uma tag ou tecnologia.
+    Em vez de apagar do banco, apenas muda o status para arquivado
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE tag_tecnologia
+            SET status = 'arquivado'
+            WHERE id_tag = ?
+            """,
+            (id_tag,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_tag_tecnologia_por_id(id_tag)
+
+
+def atualizar_competencia(id_competencia: int, competencia: CompetenciaUpdate):
+    """
+    Atualiza os dados de uma competência
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE competencia
+            SET
+                nome = ?,
+                descricao = ?,
+                categoria = ?,
+                status = ?
+            WHERE id_competencia = ?
+            """,
+            (
+                competencia.nome,
+                competencia.descricao,
+                competencia.categoria,
+                competencia.status,
+                id_competencia
+            )
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_competencia_por_id(id_competencia)
+
+
+def arquivar_competencia(id_competencia: int):
+    """
+    Arquiva uma competência
+    Em vez de apagar do banco, apenas muda o status para arquivado
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE competencia
+            SET status = 'arquivado'
+            WHERE id_competencia = ?
+            """,
+            (id_competencia,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return buscar_competencia_por_id(id_competencia)

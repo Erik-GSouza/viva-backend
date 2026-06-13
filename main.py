@@ -56,7 +56,10 @@ from models import (
     StatusUpdate,
     UsuarioUpdate,
     CursoUpdate,
-    TurmaUpdate
+    TurmaUpdate,
+    ProjetoUpdate,
+    TagTecnologiaUpdate,
+    CompetenciaUpdate
 )
 
 from repository import (
@@ -127,7 +130,12 @@ from repository import (
     atualizar_curso,
     atualizar_status_curso,
     atualizar_turma,
-    atualizar_status_turma
+    atualizar_status_turma,
+    atualizar_projeto,
+    atualizar_tag_tecnologia,
+    arquivar_tag_tecnologia,
+    atualizar_competencia,
+    arquivar_competencia
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1279,3 +1287,115 @@ def endpoint_atualizar_status_turma(id_turma: int, dados_status: StatusUpdate):
         )
 
     return turma
+
+
+# ENDPOINT DE ATUALIZAÇÃO DE PROJETO
+
+@app.put("/api/v1/projetos/{id_projeto}", response_model=ProjetoResponse)
+def endpoint_atualizar_projeto(id_projeto: int, projeto: ProjetoUpdate):
+    """
+    Atualiza os dados principais de um projeto
+    """
+
+    try:
+        projeto_atualizado = atualizar_projeto(id_projeto, projeto)
+
+        if projeto_atualizado is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Projeto não encontrado."
+            )
+
+        return projeto_atualizado
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar o projeto. Verifique se turma, usuário submissor, professor orientador ou slug são válidos."
+        )
+    
+
+# ENDPOINTS DE ATUALIZAÇÃO DE TAGS E TECNOLOGIAS
+
+@app.put("/api/v1/tags/{id_tag}", response_model=TagTecnologiaResponse)
+def endpoint_atualizar_tag_tecnologia(id_tag: int, tag: TagTecnologiaUpdate):
+    """
+    Atualiza os dados de uma tag ou tecnologia.
+    """
+
+    try:
+        tag_atualizada = atualizar_tag_tecnologia(id_tag, tag)
+
+        if tag_atualizada is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Tag ou tecnologia não encontrada."
+            )
+
+        return tag_atualizada
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar a tag ou tecnologia. Verifique se o nome já está em uso."
+        )
+
+
+@app.patch("/api/v1/tags/{id_tag}/arquivar", response_model=TagTecnologiaResponse)
+def endpoint_arquivar_tag_tecnologia(id_tag: int):
+    """
+    Arquiva uma tag ou tecnologia.
+    """
+
+    tag = arquivar_tag_tecnologia(id_tag)
+
+    if tag is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Tag ou tecnologia não encontrada."
+        )
+
+    return tag
+
+
+# ENDPOINTS DE ATUALIZAÇÃO DE COMPETÊNCIAS
+
+@app.put("/api/v1/competencias/{id_competencia}", response_model=CompetenciaResponse)
+def endpoint_atualizar_competencia(id_competencia: int, competencia: CompetenciaUpdate):
+    """
+    Atualiza os dados de uma competência
+    """
+
+    try:
+        competencia_atualizada = atualizar_competencia(id_competencia, competencia)
+
+        if competencia_atualizada is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Competência não encontrada."
+            )
+
+        return competencia_atualizada
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=400,
+            detail="Não foi possível atualizar a competência. Verifique se o nome já está em uso."
+        )
+
+
+@app.patch("/api/v1/competencias/{id_competencia}/arquivar", response_model=CompetenciaResponse)
+def endpoint_arquivar_competencia(id_competencia: int):
+    """
+    Arquiva uma competência
+    """
+
+    competencia = arquivar_competencia(id_competencia)
+
+    if competencia is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Competência não encontrada."
+        )
+
+    return competencia
