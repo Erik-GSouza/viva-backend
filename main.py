@@ -1,6 +1,7 @@
 from sqlite3 import IntegrityError
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import create_tables
 from models import (
@@ -118,6 +119,17 @@ app = FastAPI(
     title="VIVA API",
     description="Back-end do sistema VIVA com FastAPI e SQLite3.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:4200",
+        "http://127.0.0.1:4200"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
