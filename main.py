@@ -59,7 +59,8 @@ from models import (
     TurmaUpdate,
     ProjetoUpdate,
     TagTecnologiaUpdate,
-    CompetenciaUpdate
+    CompetenciaUpdate,
+    ConsentimentoPublicacaoUpdate
 )
 
 from repository import (
@@ -135,7 +136,12 @@ from repository import (
     atualizar_tag_tecnologia,
     arquivar_tag_tecnologia,
     atualizar_competencia,
-    arquivar_competencia
+    arquivar_competencia,
+    remover_integrante_do_projeto,
+    remover_tag_do_projeto,
+    remover_competencia_do_projeto,
+    remover_arquivo_do_projeto,
+    atualizar_consentimento_publicacao
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1399,3 +1405,112 @@ def endpoint_arquivar_competencia(id_competencia: int):
         )
 
     return competencia
+
+
+# ENDPOINTS DE REMOÇÃO DE VÍNCULOS DO PROJETO
+
+@app.delete("/api/v1/projetos/{id_projeto}/integrantes/{id_usuario}")
+def endpoint_remover_integrante_do_projeto(id_projeto: int, id_usuario: int):
+    """
+    Remove um integrante de um projeto.
+    """
+
+    removido = remover_integrante_do_projeto(id_projeto, id_usuario)
+
+    if not removido:
+        raise HTTPException(
+            status_code=404,
+            detail="Integrante não encontrado neste projeto."
+        )
+
+    return {
+        "message": "Integrante removido do projeto com sucesso."
+    }
+
+
+@app.delete("/api/v1/projetos/{id_projeto}/tags/{id_tag}")
+def endpoint_remover_tag_do_projeto(id_projeto: int, id_tag: int):
+    """
+    Remove uma tag ou tecnologia associada a um projeto
+    """
+
+    removido = remover_tag_do_projeto(id_projeto, id_tag)
+
+    if not removido:
+        raise HTTPException(
+            status_code=404,
+            detail="Tag não encontrada neste projeto."
+        )
+
+    return {
+        "message": "Tag removida do projeto com sucesso."
+    }
+
+
+@app.delete("/api/v1/projetos/{id_projeto}/competencias/{id_competencia}")
+def endpoint_remover_competencia_do_projeto(id_projeto: int, id_competencia: int):
+    """
+    Remove uma competência associada a um projeto
+    """
+
+    removido = remover_competencia_do_projeto(id_projeto, id_competencia)
+
+    if not removido:
+        raise HTTPException(
+            status_code=404,
+            detail="Competência não encontrada neste projeto."
+        )
+
+    return {
+        "message": "Competência removida do projeto com sucesso."
+    }
+
+
+@app.delete("/api/v1/projetos/{id_projeto}/arquivos/{id_arquivo}")
+def endpoint_remover_arquivo_do_projeto(id_projeto: int, id_arquivo: int):
+    """
+    Remove o registro de um arquivo vinculado a um projeto.
+    Não remove arquivo físico, apenas o registro no banco
+    """
+
+    removido = remover_arquivo_do_projeto(id_projeto, id_arquivo)
+
+    if not removido:
+        raise HTTPException(
+            status_code=404,
+            detail="Arquivo não encontrado neste projeto."
+        )
+
+    return {
+        "message": "Arquivo removido do projeto com sucesso."
+    }
+
+
+# ENDPOINT DE ATUALIZAÇÃO DE CONSENTIMENTO
+
+@app.put(
+    "/api/v1/projetos/{id_projeto}/consentimentos/{id_usuario}",
+    response_model=ConsentimentoPublicacaoResponse
+)
+def endpoint_atualizar_consentimento_publicacao(
+    id_projeto: int,
+    id_usuario: int,
+    consentimento: ConsentimentoPublicacaoUpdate
+):
+    """
+    Atualiza o consentimento de publicação de um usuario em um projeto
+    """
+
+    consentimento_atualizado = atualizar_consentimento_publicacao(
+        id_projeto,
+        id_usuario,
+        consentimento
+    )
+
+    if consentimento_atualizado is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Consentimento não encontrado para este projeto e usuário."
+        )
+
+    return consentimento_atualizado

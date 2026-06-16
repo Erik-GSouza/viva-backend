@@ -538,3 +538,12 @@ class CompetenciaUpdate(BaseModel):
     descricao: Optional[str] = None
     categoria: str
     status: str
+
+
+# MODELO DE ATUALIZAÇÃO DE CONSENTIMENTO
+
+class ConsentimentoPublicacaoUpdate(BaseModel):
+    autorizado: int
+    observacao: Optional[str] = None
+# id_projeto e o id_usuario ja vem pela URL
+# autorizado = 1 não-autorizado = 0

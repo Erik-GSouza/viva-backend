@@ -25,7 +25,8 @@ from models import (
     TurmaUpdate,
     ProjetoUpdate,
     TagTecnologiaUpdate,
-    CompetenciaUpdate
+    CompetenciaUpdate,
+    ConsentimentoPublicacaoUpdate
 )
 
 
@@ -2635,7 +2636,7 @@ def atualizar_competencia(id_competencia: int, competencia: CompetenciaUpdate):
 def arquivar_competencia(id_competencia: int):
     """
     Arquiva uma competência
-    Em vez de apagar do banco, apenas muda o status para arquivado
+    só muda o status para arquivado
     """
 
     connection = get_connection()
@@ -2657,3 +2658,193 @@ def arquivar_competencia(id_competencia: int):
         connection.close()
 
     return buscar_competencia_por_id(id_competencia)
+
+
+# REMOÇÃO DE VÍNCULOS E ATUALIZAÇÃO DE CONSENTIMENTO
+
+def remover_integrante_do_projeto(id_projeto: int, id_usuario: int):
+    """
+    Remove um integrante de um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    removido = False
+
+    try:
+        cursor.execute(
+            """
+            DELETE FROM integrante_projeto
+            WHERE id_projeto = ?
+            AND id_usuario = ?
+            """,
+            (id_projeto, id_usuario)
+        )
+
+        removido = cursor.rowcount > 0
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return removido
+
+
+def remover_tag_do_projeto(id_projeto: int, id_tag: int):
+    """
+    Remove uma tag ou tecnologia associada a um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    removido = False
+
+    try:
+        cursor.execute(
+            """
+            DELETE FROM projeto_tag
+            WHERE id_projeto = ?
+            AND id_tag = ?
+            """,
+            (id_projeto, id_tag)
+        )
+
+        removido = cursor.rowcount > 0
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return removido
+
+
+def remover_competencia_do_projeto(id_projeto: int, id_competencia: int):
+    """
+    Remove uma competência associada a um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    removido = False
+
+    try:
+        cursor.execute(
+            """
+            DELETE FROM projeto_competencia
+            WHERE id_projeto = ?
+            AND id_competencia = ?
+            """,
+            (id_projeto, id_competencia)
+        )
+
+        removido = cursor.rowcount > 0
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return removido
+
+
+def remover_arquivo_do_projeto(id_projeto: int, id_arquivo: int):
+    """
+    Remove o registro de um arquivo vinculado a um projeto
+    remove só o registro do banco, não o arquivo físico
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    removido = False
+
+    try:
+        cursor.execute(
+            """
+            DELETE FROM arquivo_projeto
+            WHERE id_projeto = ?
+            AND id_arquivo = ?
+            """,
+            (id_projeto, id_arquivo)
+        )
+
+        removido = cursor.rowcount > 0
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    return removido
+
+
+def buscar_consentimento_por_projeto_usuario(id_projeto: int, id_usuario: int):
+    """
+    Busca o consentimento de um usuario específico em um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id_consentimento,
+            id_projeto,
+            id_usuario,
+            autorizado,
+            observacao,
+            data_consentimento
+        FROM consentimento_publicacao
+        WHERE id_projeto = ?
+        AND id_usuario = ?
+        """,
+        (id_projeto, id_usuario)
+    )
+
+    consentimento = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(consentimento)
+
+
+def atualizar_consentimento_publicacao(
+    id_projeto: int,
+    id_usuario: int,
+    consentimento: ConsentimentoPublicacaoUpdate
+):
+    """
+    Atualiza o consentimento de publicaçao de um usuário em um projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    atualizado = False
+
+    try:
+        cursor.execute(
+            """
+            UPDATE consentimento_publicacao
+            SET
+                autorizado = ?,
+                observacao = ?,
+                data_consentimento = CURRENT_TIMESTAMP
+            WHERE id_projeto = ?
+            AND id_usuario = ?
+            """,
+            (
+                consentimento.autorizado,
+                consentimento.observacao,
+                id_projeto,
+                id_usuario
+            )
+        )
+
+        atualizado = cursor.rowcount > 0
+        connection.commit()
+
+    finally:
+        connection.close()
+
+    if not atualizado:
+        return None
+
+    return buscar_consentimento_por_projeto_usuario(id_projeto, id_usuario)
