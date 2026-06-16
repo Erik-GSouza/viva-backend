@@ -61,7 +61,8 @@ from models import (
     ProjetoUpdate,
     TagTecnologiaUpdate,
     CompetenciaUpdate,
-    ConsentimentoPublicacaoUpdate
+    ConsentimentoPublicacaoUpdate,
+    DashboardResumoResponse
 )
 
 from repository import (
@@ -142,7 +143,8 @@ from repository import (
     remover_tag_do_projeto,
     remover_competencia_do_projeto,
     remover_arquivo_do_projeto,
-    atualizar_consentimento_publicacao
+    atualizar_consentimento_publicacao,
+    gerar_resumo_dashboard
 )
 
 # Cria as tabelas do banco de dados quando a API iniciar
@@ -1526,3 +1528,14 @@ def endpoint_atualizar_consentimento_publicacao(
         )
 
     return consentimento_atualizado
+
+
+# ENDPOINT DE DASHBOARD
+
+@app.get("/api/v1/dashboard/resumo", response_model=DashboardResumoResponse)
+def endpoint_gerar_resumo_dashboard():
+    """
+    Retorna dados resumidos para o dashboard do coordenador
+    """
+
+    return gerar_resumo_dashboard()

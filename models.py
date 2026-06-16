@@ -547,3 +547,25 @@ class ConsentimentoPublicacaoUpdate(BaseModel):
     observacao: Optional[str] = None
 # id_projeto e o id_usuario ja vem pela URL
 # autorizado = 1 não-autorizado = 0
+
+
+# MODELOS DO DASHBOARD
+
+class DashboardContadorResponse(BaseModel):
+    nome: str
+    total: int
+
+
+class DashboardResumoResponse(BaseModel):
+    total_projetos: int
+    projetos_publicados: int
+    projetos_pendentes: int
+    projetos_aprovados: int
+    projetos_rejeitados: int
+    total_usuarios: int
+    total_cursos: int
+    total_tags: int
+    total_competencias: int
+    projetos_por_status: list[DashboardContadorResponse]
+    projetos_por_curso: list[DashboardContadorResponse]
+    tecnologias_mais_usadas: list[DashboardContadorResponse]

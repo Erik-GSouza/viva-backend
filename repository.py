@@ -2920,3 +2920,112 @@ def atualizar_consentimento_publicacao(
         return None
 
     return buscar_consentimento_por_projeto_usuario(id_projeto, id_usuario)
+
+
+# DASHBOARD
+
+def gerar_resumo_dashboard():
+    """
+    Gera dados resumidos para o dashboard do coordenador
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("SELECT COUNT(*) AS total FROM projeto")
+        total_projetos = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM projeto WHERE publicado = 1")
+        projetos_publicados = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM projeto WHERE status = 'pendente'")
+        projetos_pendentes = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM projeto WHERE status = 'aprovado'")
+        projetos_aprovados = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM projeto WHERE status = 'rejeitado'")
+        projetos_rejeitados = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM usuario")
+        total_usuarios = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM curso")
+        total_cursos = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM tag_tecnologia")
+        total_tags = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS total FROM competencia")
+        total_competencias = cursor.fetchone()["total"]
+
+        cursor.execute(
+            """
+            SELECT
+                status AS nome,
+                COUNT(*) AS total
+            FROM projeto
+            GROUP BY status
+            ORDER BY total DESC
+            """
+        )
+        projetos_por_status = [
+            row_to_dict(item)
+            for item in cursor.fetchall()
+        ]
+
+        cursor.execute(
+            """
+            SELECT
+                curso.sigla AS nome,
+                COUNT(projeto.id_projeto) AS total
+            FROM projeto
+            INNER JOIN turma
+                ON projeto.id_turma = turma.id_turma
+            INNER JOIN curso
+                ON turma.id_curso = curso.id_curso
+            GROUP BY curso.sigla
+            ORDER BY total DESC
+            """
+        )
+        projetos_por_curso = [
+            row_to_dict(item)
+            for item in cursor.fetchall()
+        ]
+
+        cursor.execute(
+            """
+            SELECT
+                tag_tecnologia.nome AS nome,
+                COUNT(projeto_tag.id_projeto_tag) AS total
+            FROM projeto_tag
+            INNER JOIN tag_tecnologia
+                ON projeto_tag.id_tag = tag_tecnologia.id_tag
+            GROUP BY tag_tecnologia.nome
+            ORDER BY total DESC
+            LIMIT 5
+            """
+        )
+        tecnologias_mais_usadas = [
+            row_to_dict(item)
+            for item in cursor.fetchall()
+        ]
+
+    finally:
+        connection.close()
+
+    return {
+        "total_projetos": total_projetos,
+        "projetos_publicados": projetos_publicados,
+        "projetos_pendentes": projetos_pendentes,
+        "projetos_aprovados": projetos_aprovados,
+        "projetos_rejeitados": projetos_rejeitados,
+        "total_usuarios": total_usuarios,
+        "total_cursos": total_cursos,
+        "total_tags": total_tags,
+        "total_competencias": total_competencias,
+        "projetos_por_status": projetos_por_status,
+        "projetos_por_curso": projetos_por_curso,
+        "tecnologias_mais_usadas": tecnologias_mais_usadas
+    }
