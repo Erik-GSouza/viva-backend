@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlite3 import IntegrityError
 
 from fastapi import FastAPI, HTTPException
@@ -1027,12 +1028,23 @@ def endpoint_buscar_relatorio_por_id(id_relatorio: int):
 # ENDPOINTS DA VITRINE PÚBLICA
 
 @app.get("/api/v1/publico/projetos", response_model=list[ProjetoPublicoResponse])
-def endpoint_listar_projetos_publicos():
+def endpoint_listar_projetos_publicos(
+    busca: Optional[str] = None,
+    curso: Optional[str] = None,
+    tecnologia: Optional[str] = None,
+    competencia: Optional[str] = None
+):
     """
-    Lista os projetos publicados na vitrine pública
+    Lista os projetos publicados na vitrine pública.
+    filtros opcionais por busca, curso, tecnologia e competência
     """
 
-    return listar_projetos_publicos()
+    return listar_projetos_publicos(
+        busca=busca,
+        curso=curso,
+        tecnologia=tecnologia,
+        competencia=competencia
+    )
 
 
 @app.get("/api/v1/publico/projetos/{slug_publico}", response_model=ProjetoPublicoResponse)

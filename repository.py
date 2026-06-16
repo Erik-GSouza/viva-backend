@@ -1965,18 +1965,22 @@ def buscar_relatorio_por_id(id_relatorio: int):
 
 # VITRINE PÚBLICA
 
-def listar_projetos_publicos():
+def listar_projetos_publicos(
+    busca=None,
+    curso=None,
+    tecnologia=None,
+    competencia=None
+):
     """
-    Lista os projetos publicados na vitrine pública
-    Por agora, considera público todo projeto com publicado = 1
+    lista os projetos publicados na vitrine pública.
+    filtros opcionais por busca, curso, tecnologia e competência
     """
 
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        SELECT
+    sql = """
+        SELECT DISTINCT
             projeto.id_projeto,
             projeto.titulo,
             projeto.descricao,
@@ -1996,9 +2000,77 @@ def listar_projetos_publicos():
         INNER JOIN curso
             ON turma.id_curso = curso.id_curso
         WHERE projeto.publicado = 1
-        ORDER BY projeto.data_aprovacao DESC
+    """
+
+    parametros = []
+
+    if busca:
+        sql += """
+            AND (
+                LOWER(projeto.titulo) LIKE ?
+                OR LOWER(projeto.descricao) LIKE ?
+                OR LOWER(projeto.problema) LIKE ?
+                OR LOWER(projeto.solucao) LIKE ?
+            )
         """
-    )
+
+        termo_busca = f"%{busca.lower()}%"
+
+        parametros.extend([
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca
+        ])
+
+    if curso:
+        sql += """
+            AND (
+                LOWER(curso.nome) LIKE ?
+                OR LOWER(curso.sigla) LIKE ?
+            )
+        """
+
+        termo_curso = f"%{curso.lower()}%"
+
+        parametros.extend([
+            termo_curso,
+            termo_curso
+        ])
+
+    if tecnologia:
+        sql += """
+            AND EXISTS (
+                SELECT 1
+                FROM projeto_tag
+                INNER JOIN tag_tecnologia
+                    ON projeto_tag.id_tag = tag_tecnologia.id_tag
+                WHERE projeto_tag.id_projeto = projeto.id_projeto
+                AND LOWER(tag_tecnologia.nome) LIKE ?
+            )
+        """
+
+        parametros.append(f"%{tecnologia.lower()}%")
+
+    if competencia:
+        sql += """
+            AND EXISTS (
+                SELECT 1
+                FROM projeto_competencia
+                INNER JOIN competencia
+                    ON projeto_competencia.id_competencia = competencia.id_competencia
+                WHERE projeto_competencia.id_projeto = projeto.id_projeto
+                AND LOWER(competencia.nome) LIKE ?
+            )
+        """
+
+        parametros.append(f"%{competencia.lower()}%")
+
+    sql += """
+        ORDER BY projeto.data_aprovacao DESC
+    """
+
+    cursor.execute(sql, parametros)
 
     projetos = cursor.fetchall()
 
