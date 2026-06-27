@@ -51,6 +51,11 @@ from models import (
     RelatorioCreate,
     RelatorioResponse,
     ProjetoPublicoResponse,
+    ProjetoPublicoTagResponse,
+    ProjetoPublicoCompetenciaResponse,
+    ProjetoPublicoIntegranteResponse,
+    PortfolioPublicoResponse,
+    PortfolioPublicoProjetoResponse,
     LoginRequest,
     LoginResponse,
     ProjetoStatusUpdate,
@@ -122,6 +127,12 @@ from repository import (
     buscar_relatorio_por_id,
     listar_projetos_publicos,
     buscar_projeto_publico_por_slug,
+    listar_tags_publicas_por_slug,
+    listar_competencias_publicas_por_slug,
+    listar_integrantes_publicos_por_slug,
+    buscar_portfolio_publico_por_slug,
+    listar_projetos_publicos_do_portfolio,
+    remover_projeto_do_portfolio,
     publicar_projeto,
     autenticar_usuario,
     atualizar_status_projeto,
@@ -152,7 +163,7 @@ create_tables()
 
 app = FastAPI(
     title="VIVA API",
-    description="Back-end do sistema VIVA com FastAPI e SQLite3.",
+    description="Back-end do sistema VIVA",
     version="1.0.0"
 )
 
@@ -1064,6 +1075,125 @@ def endpoint_buscar_projeto_publico_por_slug(slug_publico: str):
         )
 
     return projeto
+
+
+@app.get(
+    "/api/v1/publico/projetos/{slug_publico}/tags",
+    response_model=list[ProjetoPublicoTagResponse]
+)
+def endpoint_listar_tags_publicas_por_slug(slug_publico: str):
+    """
+    Lista as tecnologias/tags de um projeto publicado.
+    """
+
+    projeto = buscar_projeto_publico_por_slug(slug_publico)
+
+    if projeto is None:
+      raise HTTPException(
+          status_code=404,
+          detail="Projeto público não encontrado."
+      )
+
+    return listar_tags_publicas_por_slug(slug_publico)
+
+
+@app.get(
+    "/api/v1/publico/projetos/{slug_publico}/competencias",
+    response_model=list[ProjetoPublicoCompetenciaResponse]
+)
+def endpoint_listar_competencias_publicas_por_slug(slug_publico: str):
+    """
+    Lista as competências de um projeto publicado.
+    """
+
+    projeto = buscar_projeto_publico_por_slug(slug_publico)
+
+    if projeto is None:
+      raise HTTPException(
+          status_code=404,
+          detail="Projeto público não encontrado."
+      )
+
+    return listar_competencias_publicas_por_slug(slug_publico)
+
+
+@app.get(
+    "/api/v1/publico/projetos/{slug_publico}/integrantes",
+    response_model=list[ProjetoPublicoIntegranteResponse]
+)
+def endpoint_listar_integrantes_publicos_por_slug(slug_publico: str):
+    """
+    Lista os integrantes/alunos de um projeto publicado
+    """
+
+    projeto = buscar_projeto_publico_por_slug(slug_publico)
+
+    if projeto is None:
+      raise HTTPException(
+          status_code=404,
+          detail="Projeto público não encontrado."
+      )
+
+    return listar_integrantes_publicos_por_slug(slug_publico)
+
+
+@app.get(
+    "/api/v1/publico/portfolios/{slug_publico}",
+    response_model=PortfolioPublicoResponse
+)
+def endpoint_buscar_portfolio_publico_por_slug(slug_publico: str):
+    """
+    Busca um portfólio público pelo slug.
+    """
+
+    portfolio = buscar_portfolio_publico_por_slug(slug_publico)
+
+    if portfolio is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Portfólio público não encontrado."
+        )
+
+    return portfolio
+
+
+@app.get(
+    "/api/v1/publico/portfolios/{slug_publico}/projetos",
+    response_model=list[PortfolioPublicoProjetoResponse]
+)
+def endpoint_listar_projetos_publicos_do_portfolio(slug_publico: str):
+    """
+    Lista os projetos publicados em que o aluno participou.
+    """
+
+    portfolio = buscar_portfolio_publico_por_slug(slug_publico)
+
+    if portfolio is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Portfólio público não encontrado."
+        )
+
+    return listar_projetos_publicos_do_portfolio(slug_publico)
+
+
+@app.delete("/api/v1/portfolios/{id_portfolio}/projetos/{id_portfolio_projeto}", status_code=204)
+def endpoint_remover_projeto_do_portfolio(id_portfolio: int, id_portfolio_projeto: int):
+    """
+    Remove um projeto do portfólio.
+
+    permite que o aluno escolha quais projetos quer exibir publicamente
+    """
+
+    removido = remover_projeto_do_portfolio(id_portfolio, id_portfolio_projeto)
+
+    if not removido:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado neste portfólio."
+        )
+
+    return None
 
 
 # ENDPOINT DE PUBLICAÇÃO DE PROJETO

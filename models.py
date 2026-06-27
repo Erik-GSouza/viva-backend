@@ -444,6 +444,50 @@ class ProjetoPublicoResponse(BaseModel):
     sigla_curso: Optional[str] = None
 
 
+class ProjetoPublicoTagResponse(BaseModel):
+    id_tag: int
+    nome: str
+    categoria: str
+    cor: Optional[str] = None
+
+
+class ProjetoPublicoCompetenciaResponse(BaseModel):
+    id_competencia: int
+    nome: str
+    descricao: Optional[str] = None
+    categoria: str
+    nivel: str
+
+
+class ProjetoPublicoIntegranteResponse(BaseModel):
+    id_usuario: int
+    nome: str
+    funcao: str
+    slug_portfolio: Optional[str] = None
+
+
+class PortfolioPublicoResponse(BaseModel):
+    id_portfolio: int
+    id_usuario: int
+    nome_usuario: str
+    titulo: str
+    bio: Optional[str] = None
+    slug_publico: str
+    status: str
+
+
+class PortfolioPublicoProjetoResponse(BaseModel):
+    id_projeto: int
+    titulo: str
+    descricao: str
+    slug_publico: Optional[str] = None
+    data_aprovacao: Optional[str] = None
+    turma: Optional[str] = None
+    curso: Optional[str] = None
+    sigla_curso: Optional[str] = None
+    funcao: str
+
+
 # MODELOS DE LOGIN
 
 class LoginRequest(BaseModel):

@@ -1,4 +1,6 @@
 from typing import Optional
+import re            # Esses imports servem para transformar títulos como
+import unicodedata   # Projeto Teste Front-end em projeto-teste-front-end
 
 from database import get_connection
 from models import (
@@ -42,6 +44,69 @@ def row_to_dict(row):
         return None
 
     return dict(row)
+
+def criar_slug_base(texto: str):
+    """
+    Transforma um texto comum em um slug amigável para URL.
+
+    Ex:
+    "Projeto Teste Front-end" vira "projeto-teste-front-end"
+
+    ajuda a vitrine pública a ter links mais bonitinhos e estáveis,
+    em vez de depender do ID do projeto
+    """
+
+    texto_normalizado = unicodedata.normalize("NFKD", texto)
+    texto_sem_acento = texto_normalizado.encode("ascii", "ignore").decode("ascii")
+    texto_minusculo = texto_sem_acento.lower()
+
+    slug = re.sub(r"[^a-z0-9]+", "-", texto_minusculo)
+    slug = slug.strip("-")
+
+    if slug == "":
+        return "projeto"
+
+    return slug
+
+
+def slug_projeto_existe(cursor, slug: str, id_projeto_atual: int):
+    """
+    Verifica se já existe outro projeto usando o mesmo slug.
+
+    Ignora o próprio projeto atual para evitar falso conflito
+    quando ele já tiver um slug salvo
+    """
+
+    cursor.execute(
+        """
+        SELECT id_projeto
+        FROM projeto
+        WHERE slug_publico = ?
+        AND id_projeto <> ?
+        """,
+        (slug, id_projeto_atual)
+    )
+
+    return cursor.fetchone() is not None
+
+
+def gerar_slug_publico_projeto(cursor, titulo: str, id_projeto: int):
+    """
+    Gera um slug único para o projeto.
+
+    Se já existir "sistema-viva", o próximo vira:
+    "sistema-viva-2", depois "sistema-viva-3", e assim por diante.
+    """
+
+    slug_base = criar_slug_base(titulo)
+    slug_final = slug_base
+    contador = 2
+
+    while slug_projeto_existe(cursor, slug_final, id_projeto):
+        slug_final = f"{slug_base}-{contador}"
+        contador += 1
+
+    return slug_final
 
 
 # PERFIL
@@ -1966,21 +2031,131 @@ def buscar_relatorio_por_id(id_relatorio: int):
 # VITRINE PÚBLICA
 
 def listar_projetos_publicos(
-    busca=None,
-    curso=None,
-    tecnologia=None,
-    competencia=None
+    busca: Optional[str] = None,
+    curso: Optional[str] = None,
+    tecnologia: Optional[str] = None,
+    competencia: Optional[str] = None
 ):
     """
-    lista os projetos publicados na vitrine pública.
-    filtros opcionais por busca, curso, tecnologia e competência
+    Lista projetos publicados para a vitrine pública.
     """
 
     connection = get_connection()
     cursor = connection.cursor()
 
-    sql = """
-        SELECT DISTINCT
+    filtros = [
+        "projeto.publicado = 1",
+        "projeto.status = 'aprovado'"
+    ]
+
+    parametros = []
+
+    if busca:
+        termo_busca = f"%{busca}%"
+
+        filtros.append(
+            """
+            (
+                projeto.titulo LIKE ?
+                OR projeto.descricao LIKE ?
+                OR projeto.problema LIKE ?
+                OR projeto.solucao LIKE ?
+                OR curso.nome LIKE ?
+                OR curso.sigla LIKE ?
+                OR turma.nome LIKE ?
+                OR EXISTS (
+                    SELECT 1
+                    FROM projeto_tag
+                    INNER JOIN tag_tecnologia
+                        ON projeto_tag.id_tag = tag_tecnologia.id_tag
+                    WHERE projeto_tag.id_projeto = projeto.id_projeto
+                    AND tag_tecnologia.nome LIKE ?
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM projeto_competencia
+                    INNER JOIN competencia
+                        ON projeto_competencia.id_competencia = competencia.id_competencia
+                    WHERE projeto_competencia.id_projeto = projeto.id_projeto
+                    AND competencia.nome LIKE ?
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM integrante_projeto
+                    INNER JOIN usuario
+                        ON integrante_projeto.id_usuario = usuario.id_usuario
+                    WHERE integrante_projeto.id_projeto = projeto.id_projeto
+                    AND usuario.nome LIKE ?
+                )
+            )
+            """
+        )
+
+        parametros.extend([
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca,
+            termo_busca
+        ])
+
+    if curso:
+        filtros.append(
+            """
+            (
+                curso.nome LIKE ?
+                OR curso.sigla LIKE ?
+            )
+            """
+        )
+
+        parametros.extend([
+            f"%{curso}%",
+            f"%{curso}%"
+        ])
+
+    if tecnologia:
+        filtros.append(
+            """
+            EXISTS (
+                SELECT 1
+                FROM projeto_tag
+                INNER JOIN tag_tecnologia
+                    ON projeto_tag.id_tag = tag_tecnologia.id_tag
+                WHERE projeto_tag.id_projeto = projeto.id_projeto
+                AND tag_tecnologia.nome LIKE ?
+            )
+            """
+        )
+
+        parametros.append(f"%{tecnologia}%")
+
+    if competencia:
+        filtros.append(
+            """
+            EXISTS (
+                SELECT 1
+                FROM projeto_competencia
+                INNER JOIN competencia
+                    ON projeto_competencia.id_competencia = competencia.id_competencia
+                WHERE projeto_competencia.id_projeto = projeto.id_projeto
+                AND competencia.nome LIKE ?
+            )
+            """
+        )
+
+        parametros.append(f"%{competencia}%")
+
+    where_sql = " AND ".join(filtros)
+
+    cursor.execute(
+        f"""
+        SELECT
             projeto.id_projeto,
             projeto.titulo,
             projeto.descricao,
@@ -1995,82 +2170,15 @@ def listar_projetos_publicos(
             curso.nome AS curso,
             curso.sigla AS sigla_curso
         FROM projeto
-        INNER JOIN turma
+        LEFT JOIN turma
             ON projeto.id_turma = turma.id_turma
-        INNER JOIN curso
+        LEFT JOIN curso
             ON turma.id_curso = curso.id_curso
-        WHERE projeto.publicado = 1
-    """
-
-    parametros = []
-
-    if busca:
-        sql += """
-            AND (
-                LOWER(projeto.titulo) LIKE ?
-                OR LOWER(projeto.descricao) LIKE ?
-                OR LOWER(projeto.problema) LIKE ?
-                OR LOWER(projeto.solucao) LIKE ?
-            )
-        """
-
-        termo_busca = f"%{busca.lower()}%"
-
-        parametros.extend([
-            termo_busca,
-            termo_busca,
-            termo_busca,
-            termo_busca
-        ])
-
-    if curso:
-        sql += """
-            AND (
-                LOWER(curso.nome) LIKE ?
-                OR LOWER(curso.sigla) LIKE ?
-            )
-        """
-
-        termo_curso = f"%{curso.lower()}%"
-
-        parametros.extend([
-            termo_curso,
-            termo_curso
-        ])
-
-    if tecnologia:
-        sql += """
-            AND EXISTS (
-                SELECT 1
-                FROM projeto_tag
-                INNER JOIN tag_tecnologia
-                    ON projeto_tag.id_tag = tag_tecnologia.id_tag
-                WHERE projeto_tag.id_projeto = projeto.id_projeto
-                AND LOWER(tag_tecnologia.nome) LIKE ?
-            )
-        """
-
-        parametros.append(f"%{tecnologia.lower()}%")
-
-    if competencia:
-        sql += """
-            AND EXISTS (
-                SELECT 1
-                FROM projeto_competencia
-                INNER JOIN competencia
-                    ON projeto_competencia.id_competencia = competencia.id_competencia
-                WHERE projeto_competencia.id_projeto = projeto.id_projeto
-                AND LOWER(competencia.nome) LIKE ?
-            )
-        """
-
-        parametros.append(f"%{competencia.lower()}%")
-
-    sql += """
-        ORDER BY projeto.data_aprovacao DESC
-    """
-
-    cursor.execute(sql, parametros)
+        WHERE {where_sql}
+        ORDER BY projeto.data_aprovacao DESC, projeto.id_projeto DESC
+        """,
+        parametros
+    )
 
     projetos = cursor.fetchall()
 
@@ -2122,12 +2230,246 @@ def buscar_projeto_publico_por_slug(slug_publico: str):
     return row_to_dict(projeto)
 
 
+def listar_tags_publicas_por_slug(slug_publico: str):
+    """
+    Lista as tecnologias/tags de um projeto publicado.
+
+    Essa função é só para para a vitrine pública
+    pro front público não precisar usar endpoints de users
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            tag_tecnologia.id_tag,
+            tag_tecnologia.nome,
+            tag_tecnologia.categoria,
+            tag_tecnologia.cor
+        FROM projeto
+        INNER JOIN projeto_tag
+            ON projeto.id_projeto = projeto_tag.id_projeto
+        INNER JOIN tag_tecnologia
+            ON projeto_tag.id_tag = tag_tecnologia.id_tag
+        WHERE projeto.publicado = 1
+        AND projeto.slug_publico = ?
+        AND tag_tecnologia.status = 'ativo'
+        ORDER BY tag_tecnologia.nome
+        """,
+        (slug_publico,)
+    )
+
+    tags = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(tag) for tag in tags]
+
+
+def listar_competencias_publicas_por_slug(slug_publico: str):
+    """
+    Lista as competências de um projeto publicado.
+
+    A competência aparece junto com o nível usado naquele projeto
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            competencia.id_competencia,
+            competencia.nome,
+            competencia.descricao,
+            competencia.categoria,
+            projeto_competencia.nivel
+        FROM projeto
+        INNER JOIN projeto_competencia
+            ON projeto.id_projeto = projeto_competencia.id_projeto
+        INNER JOIN competencia
+            ON projeto_competencia.id_competencia = competencia.id_competencia
+        WHERE projeto.publicado = 1
+        AND projeto.slug_publico = ?
+        AND competencia.status = 'ativo'
+        ORDER BY competencia.nome
+        """,
+        (slug_publico,)
+    )
+
+    competencias = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(competencia) for competencia in competencias]
+
+
+def listar_integrantes_publicos_por_slug(slug_publico: str):
+    """
+    Lista os integrantes/alunos de um projeto publicado.
+
+    mostra só o necessário pra vitrine:
+    nome do aluno,função no projeto e,se tiver, o slug do portfólio.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            usuario.id_usuario,
+            usuario.nome,
+            integrante_projeto.funcao,
+            portfolio.slug_publico AS slug_portfolio
+        FROM projeto
+        INNER JOIN integrante_projeto
+            ON projeto.id_projeto = integrante_projeto.id_projeto
+        INNER JOIN usuario
+            ON integrante_projeto.id_usuario = usuario.id_usuario
+        LEFT JOIN portfolio
+            ON usuario.id_usuario = portfolio.id_usuario
+        WHERE projeto.publicado = 1
+        AND projeto.slug_publico = ?
+        ORDER BY usuario.nome
+        """,
+        (slug_publico,)
+    )
+
+    integrantes = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(integrante) for integrante in integrantes]
+
+
+def buscar_portfolio_publico_por_slug(slug_publico: str):
+    """
+    Busca um portfólio público pelo slug.
+
+    função usada pela vitrine pública, ela só retorna portfólios
+    ativos e evita expor dados pessoais.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            portfolio.id_portfolio,
+            portfolio.id_usuario,
+            usuario.nome AS nome_usuario,
+            portfolio.titulo,
+            portfolio.bio,
+            portfolio.slug_publico,
+            portfolio.status
+        FROM portfolio
+        INNER JOIN usuario
+            ON portfolio.id_usuario = usuario.id_usuario
+        WHERE portfolio.slug_publico = ?
+        AND portfolio.status = 'ativo'
+        """,
+        (slug_publico,)
+    )
+
+    portfolio = cursor.fetchone()
+
+    connection.close()
+
+    return row_to_dict(portfolio)
+
+
+def listar_projetos_publicos_do_portfolio(slug_publico: str):
+    """
+    Lista os projetos publicados que o aluno escolheu exibir no portfólio público.
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            projeto.id_projeto,
+            projeto.titulo,
+            projeto.descricao,
+            projeto.slug_publico,
+            projeto.data_aprovacao,
+            turma.nome AS turma,
+            curso.nome AS curso,
+            curso.sigla AS sigla_curso,
+            COALESCE(integrante_projeto.funcao, 'Participante') AS funcao
+        FROM portfolio
+        INNER JOIN portfolio_projeto
+            ON portfolio.id_portfolio = portfolio_projeto.id_portfolio
+        INNER JOIN projeto
+            ON portfolio_projeto.id_projeto = projeto.id_projeto
+        LEFT JOIN integrante_projeto
+            ON projeto.id_projeto = integrante_projeto.id_projeto
+            AND portfolio.id_usuario = integrante_projeto.id_usuario
+        LEFT JOIN turma
+            ON projeto.id_turma = turma.id_turma
+        LEFT JOIN curso
+            ON turma.id_curso = curso.id_curso
+        WHERE portfolio.slug_publico = ?
+        AND portfolio.status = 'ativo'
+        AND projeto.publicado = 1
+        ORDER BY
+            portfolio_projeto.ordem_exibicao IS NULL,
+            portfolio_projeto.ordem_exibicao,
+            projeto.data_aprovacao DESC,
+            projeto.id_projeto DESC
+        """,
+        (slug_publico,)
+    )
+
+    projetos = cursor.fetchall()
+
+    connection.close()
+
+    return [row_to_dict(projeto) for projeto in projetos]
+
+
+def remover_projeto_do_portfolio(id_portfolio: int, id_portfolio_projeto: int):
+    """
+    Remove um projeto do portfólio do aluno.
+
+    Usa o id_portfolio e o id_portfolio_projeto juntos para garantir que
+    o aluno só remova um vínculo que realmente pertence ao portfólio dele
+    """
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM portfolio_projeto
+        WHERE id_portfolio = ?
+        AND id_portfolio_projeto = ?
+        """,
+        (id_portfolio, id_portfolio_projeto)
+    )
+
+    linhas_afetadas = cursor.rowcount
+
+    connection.commit()
+    connection.close()
+
+    return linhas_afetadas > 0
+
+
 # PUBLICAÇÃO DE PROJETO
 
 def publicar_projeto(id_projeto: int):
     """
-    Publica um projeto na vitrine pública
-    Ao publicar o projeto passa a aparecer nos endpoints publicos
+    Publica um projeto na vitrine pública.
+
+    Além de marcar publicado = 1, esta função também faz com que o projeto
+    tenha um slug_publico. Sem esse slug, o front não consegue abrir a página
+    pública de detalhes do projeto
     """
 
     connection = get_connection()
@@ -2136,15 +2478,44 @@ def publicar_projeto(id_projeto: int):
     try:
         cursor.execute(
             """
+            SELECT
+                id_projeto,
+                titulo,
+                slug_publico
+            FROM projeto
+            WHERE id_projeto = ?
+            """,
+            (id_projeto,)
+        )
+
+        projeto_atual = cursor.fetchone()
+
+        if projeto_atual is None:
+            return None
+
+        slug_atual = projeto_atual["slug_publico"]
+
+        if slug_atual is None or slug_atual.strip() == "":
+            slug_publico = gerar_slug_publico_projeto(
+                cursor,
+                projeto_atual["titulo"],
+                id_projeto
+            )
+        else:
+            slug_publico = slug_atual
+
+        cursor.execute(
+            """
             UPDATE projeto
             SET
                 publicado = 1,
                 status = 'aprovado',
-                data_aprovacao = COALESCE(data_aprovacao, CURRENT_TIMESTAMP), 
+                slug_publico = ?,
+                data_aprovacao = COALESCE(data_aprovacao, CURRENT_TIMESTAMP),
                 data_atualizacao = CURRENT_TIMESTAMP
             WHERE id_projeto = ?
             """,
-            (id_projeto,)
+            (slug_publico, id_projeto)
         )
 
         connection.commit()
@@ -2153,7 +2524,6 @@ def publicar_projeto(id_projeto: int):
         connection.close()
 
     return buscar_projeto_por_id(id_projeto)
-# linha 2064 = se data_aprovacao ainda estiver vazia, coloque a data atual; se já tiver uma data, mantenha a data antiga
 # evita trocar a data de aprovação toda vez que alguem chamar o endpoint
 
 
