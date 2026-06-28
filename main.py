@@ -4,7 +4,7 @@ from sqlite3 import IntegrityError
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import create_tables
+from database import create_tables, create_initial_data
 from models import (
     PerfilCreate,
     PerfilResponse,
@@ -160,6 +160,9 @@ from repository import (
 
 # Cria as tabelas do banco de dados quando a API iniciar
 create_tables()
+
+# Cria dados iniciais pra testes em outro pc
+create_initial_data()
 
 app = FastAPI(
     title="VIVA API",
